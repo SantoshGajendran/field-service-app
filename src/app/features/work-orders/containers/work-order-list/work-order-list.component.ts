@@ -156,7 +156,9 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
         <app-work-order-card
           *ngFor="let wo of workOrders; trackBy: trackByWorkOrderId"
           [workOrder]="wo"
-          (cardClick)="onWorkOrderClick($event)">
+          (cardClick)="onWorkOrderClick($event)"
+          (completeAction)="onCompleteWorkOrder($event)"
+          (deleteAction)="onDeleteWorkOrder($event)">
         </app-work-order-card>
       </ng-container>
 
@@ -784,6 +786,41 @@ export class WorkOrderListComponent {
 
   onWorkOrderClick(workOrder: WorkOrder) {
     this.router.navigate(['/work-orders', workOrder.id]);
+  }
+
+  async onCompleteWorkOrder(workOrder: WorkOrder) {
+    await this.hapticService.success();
+
+    const updatedWorkOrder: WorkOrder = {
+      ...workOrder,
+      status: 'COMPLETED',
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await this.workOrderRepo.update(updatedWorkOrder);
+      // Toast notification would be nice here
+      console.log('Work order marked as complete:', workOrder.id);
+    } catch (error) {
+      console.error('Error completing work order:', error);
+      await this.hapticService.error();
+    }
+  }
+
+  async onDeleteWorkOrder(workOrder: WorkOrder) {
+    await this.hapticService.warning();
+
+    const confirmed = confirm(`Delete work order ${workOrder.id}?\n\nThis action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await this.workOrderRepo.remove(workOrder.id);
+      await this.hapticService.success();
+      console.log('Work order deleted:', workOrder.id);
+    } catch (error) {
+      console.error('Error deleting work order:', error);
+      await this.hapticService.error();
+    }
   }
 
   getStatusCount(workOrders: WorkOrder[], status: WorkOrder['status']): number {

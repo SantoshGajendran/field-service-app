@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkOrder } from '../../../../core/models/work-order.model';
 import { HapticService } from '../../../../core/services/haptic.service';
@@ -8,7 +8,35 @@ import { HapticService } from '../../../../core/services/haptic.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="glass-panel card-container interactive" (click)="onClick()">
+    <div class="card-wrapper"
+         [style.transform]="'translateX(' + swipeOffset + 'px)'"
+         [class.swiping]="isSwiping"
+         (touchstart)="onTouchStart($event)"
+         (touchmove)="onTouchMove($event)"
+         (touchend)="onTouchEnd()">
+
+      <!-- Swipe Actions Background -->
+      <div class="swipe-actions-left" [class.visible]="swipeOffset > 50">
+        <div class="swipe-action complete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>Complete</span>
+        </div>
+      </div>
+
+      <div class="swipe-actions-right" [class.visible]="swipeOffset < -50">
+        <div class="swipe-action delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span>Delete</span>
+        </div>
+      </div>
+
+      <div class="glass-panel card-container interactive" (click)="onClick()">
       <div class="card-glow"></div>
       <div class="card-header">
         <span class="equipment-id">
@@ -55,8 +83,84 @@ import { HapticService } from '../../../../core/services/haptic.service';
         </button>
       </div>
     </div>
+    </div>
   `,
   styles: [`
+    .card-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      touch-action: pan-y;
+    }
+
+    .card-wrapper.swiping {
+      transition: none;
+    }
+
+    .swipe-actions-left,
+    .swipe-actions-right {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .swipe-actions-left {
+      left: 0;
+      background: linear-gradient(to right, rgba(16, 185, 129, 0.2), transparent);
+    }
+
+    .swipe-actions-right {
+      right: 0;
+      background: linear-gradient(to left, rgba(239, 68, 68, 0.2), transparent);
+    }
+
+    .swipe-actions-left.visible,
+    .swipe-actions-right.visible {
+      opacity: 1;
+    }
+
+    .swipe-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px;
+
+      svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      &.complete {
+        color: var(--color-status-success);
+
+        svg {
+          filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+        }
+      }
+
+      &.delete {
+        color: var(--color-status-error);
+
+        svg {
+          filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+        }
+      }
+    }
+
     .card-container {
       padding: 20px;
       margin-bottom: 16px;
@@ -277,8 +381,16 @@ import { HapticService } from '../../../../core/services/haptic.service';
 export class WorkOrderCardComponent {
   @Input({ required: true }) workOrder!: WorkOrder;
   @Output() cardClick = new EventEmitter<WorkOrder>();
+  @Output() completeAction = new EventEmitter<WorkOrder>();
+  @Output() deleteAction = new EventEmitter<WorkOrder>();
 
   private hapticService = inject(HapticService);
+
+  // Swipe state
+  swipeOffset = 0;
+  isSwiping = false;
+  private startX = 0;
+  private startTime = 0;
 
   get statusClass(): string {
     switch (this.workOrder.status) {
@@ -290,7 +402,61 @@ export class WorkOrderCardComponent {
   }
 
   async onClick(): Promise<void> {
+    // Don't trigger click if we're swiping
+    if (this.isSwiping || Math.abs(this.swipeOffset) > 5) {
+      return;
+    }
     await this.hapticService.light();
     this.cardClick.emit(this.workOrder);
+  }
+
+  onTouchStart(event: TouchEvent) {
+    this.startX = event.touches[0].clientX;
+    this.startTime = Date.now();
+    this.isSwiping = false;
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (!this.startX) return;
+
+    const currentX = event.touches[0].clientX;
+    const diff = currentX - this.startX;
+
+    // Only start swiping if moved more than 10px
+    if (Math.abs(diff) > 10) {
+      this.isSwiping = true;
+      this.swipeOffset = diff;
+
+      // Limit swipe distance
+      if (this.swipeOffset > 120) this.swipeOffset = 120;
+      if (this.swipeOffset < -120) this.swipeOffset = -120;
+
+      // Provide haptic feedback at thresholds
+      if (Math.abs(diff) === 60 || Math.abs(diff) === 80) {
+        this.hapticService.light();
+      }
+    }
+  }
+
+  async onTouchEnd() {
+    const swipeTime = Date.now() - this.startTime;
+    const swipeSpeed = Math.abs(this.swipeOffset) / swipeTime;
+
+    // Swipe right (complete action)
+    if (this.swipeOffset > 80 || (this.swipeOffset > 50 && swipeSpeed > 0.5)) {
+      await this.hapticService.success();
+      this.completeAction.emit(this.workOrder);
+    }
+    // Swipe left (delete action)
+    else if (this.swipeOffset < -80 || (this.swipeOffset < -50 && swipeSpeed > 0.5)) {
+      await this.hapticService.warning();
+      this.deleteAction.emit(this.workOrder);
+    }
+
+    // Reset swipe
+    this.swipeOffset = 0;
+    setTimeout(() => {
+      this.isSwiping = false;
+    }, 300);
   }
 }
