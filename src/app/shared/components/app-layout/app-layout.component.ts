@@ -194,6 +194,7 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
       flex: 1;
       overflow-y: auto;
       padding: 20px;
+      padding-bottom: calc(100px + env(safe-area-inset-bottom));
       -webkit-overflow-scrolling: touch;
       animation: fadeIn 0.6s ease-out;
     }
@@ -203,7 +204,7 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
       justify-content: space-around;
       align-items: center;
       padding: 12px 8px;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       position: sticky;
       bottom: 0;
       z-index: 100;
@@ -224,7 +225,9 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
         font-weight: 600;
         letter-spacing: 0.5px;
         transition: all var(--transition-base);
-        padding: 10px 18px;
+        padding: 12px 18px;
+        min-height: 48px;
+        min-width: 48px;
         border-radius: var(--radius-md);
         position: relative;
 
@@ -298,6 +301,67 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    /* Landscape Mode Optimization */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .app-header {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+      }
+
+      .app-nav {
+        flex-direction: column;
+        width: 80px;
+        height: 100vh;
+        left: 0;
+        right: auto;
+        bottom: 0;
+        top: 0;
+        border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+        padding: 12px 8px;
+        padding-left: max(8px, env(safe-area-inset-left));
+        justify-content: center;
+        gap: 8px;
+
+        .nav-item {
+          width: 100%;
+          padding: 12px 8px;
+
+          span {
+            font-size: 0.65rem;
+          }
+        }
+      }
+
+      .content-area {
+        margin-left: 80px;
+        padding: 16px;
+        padding-bottom: 16px;
+      }
+    }
+
+    /* Tablet Landscape */
+    @media (orientation: landscape) and (min-width: 768px) {
+      .app-nav {
+        width: 100px;
+
+        .nav-item {
+          .icon {
+            width: 28px;
+            height: 28px;
+          }
+
+          span {
+            font-size: 0.75rem;
+          }
+        }
+      }
+
+      .content-area {
+        margin-left: 100px;
+        padding: 24px;
       }
     }
   `]

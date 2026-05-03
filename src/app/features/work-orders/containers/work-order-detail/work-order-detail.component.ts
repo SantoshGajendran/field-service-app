@@ -8,6 +8,7 @@ import { SyncService } from '../../../../core/services/sync.service';
 import { PhotoService } from '../../../../core/services/photo.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { LocationService } from '../../../../core/services/location.service';
+import { HapticService } from '../../../../core/services/haptic.service';
 import { WorkOrder } from '../../../../core/models/work-order.model';
 import { Checklist, ChecklistItem } from '../../../../core/models/checklist.model';
 import { ChecklistComponent } from '../../components/checklist/checklist.component';
@@ -242,7 +243,18 @@ import { take } from 'rxjs';
 
             <div class="photo-grid" *ngIf="workOrder && workOrder.photos && workOrder.photos.length > 0">
               <div class="photo-item" *ngFor="let photo of workOrder.photos; let i = index">
-                <img [src]="photo.url" [alt]="'Photo ' + (i + 1)">
+                <img [src]="photo.url" [alt]="'Photo ' + (i + 1)" (error)="onImageError($event, photo)">
+
+                <!-- Offline/Sync Indicator -->
+                <div class="sync-indicator" *ngIf="photo.isLocal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>Pending sync</span>
+                </div>
+
                 <button type="button" class="delete-photo-btn" (click)="deletePhoto(i)" title="Delete photo">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -679,6 +691,29 @@ import { take } from 'rxjs';
         object-fit: cover;
       }
 
+      .sync-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(14, 165, 233, 0.95), rgba(14, 165, 233, 0.8));
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        backdrop-filter: blur(10px);
+
+        svg {
+          width: 16px;
+          height: 16px;
+          animation: spin 2s linear infinite;
+        }
+      }
+
       .delete-photo-btn {
         position: absolute;
         top: 6px;
@@ -935,6 +970,60 @@ import { take } from 'rxjs';
         }
       }
     }
+
+    /* Landscape Mode Optimization */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .detail-container {
+        padding: 1rem;
+        margin: 0.5rem;
+      }
+
+      .header h2 {
+        font-size: 1.25rem;
+      }
+
+      .title {
+        font-size: 1.25rem;
+      }
+
+      .photos-section,
+      .signature-section,
+      .location-section {
+        padding: 1rem;
+      }
+
+      .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+      }
+    }
+
+    /* Tablet Landscape - Two Column Layout */
+    @media (orientation: landscape) and (min-width: 768px) {
+      .edit-form {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+      }
+
+      .form-group:first-child,
+      .form-group:nth-child(2) {
+        grid-column: span 1;
+      }
+
+      .location-section,
+      .photos-section,
+      .signature-section,
+      .map-section,
+      .location-history-section,
+      .submit-btn {
+        grid-column: 1 / -1;
+      }
+
+      .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+    }
   `]
 })
 export class WorkOrderDetailComponent implements OnInit {
@@ -946,6 +1035,7 @@ export class WorkOrderDetailComponent implements OnInit {
   private photoService = inject(PhotoService);
   private toastService = inject(ToastService);
   private locationService = inject(LocationService);
+  private hapticService = inject(HapticService);
   private fb = inject(FormBuilder);
 
   workOrder: WorkOrder | null = null;
@@ -1048,6 +1138,7 @@ export class WorkOrderDetailComponent implements OnInit {
 
     try {
       this.isUploadingPhoto = true;
+      await this.hapticService.light();
       const photo = await this.photoService.takePhoto();
 
       if (!photo || !photo.base64String) {
@@ -1081,6 +1172,7 @@ export class WorkOrderDetailComponent implements OnInit {
         retryCount: 0
       });
 
+      await this.hapticService.success();
       if (photoData.isLocal) {
         this.toastService.info('Photo saved locally. Will sync when online.');
       } else {
@@ -1088,6 +1180,7 @@ export class WorkOrderDetailComponent implements OnInit {
       }
     } catch (error) {
       console.error('Error taking photo:', error);
+      await this.hapticService.error();
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.toastService.error(`Failed to take photo: ${errorMessage}`);
     } finally {
@@ -1152,7 +1245,11 @@ export class WorkOrderDetailComponent implements OnInit {
 
     const photo = this.workOrder.photos[index];
 
+    const confirmed = confirm('Are you sure you want to delete this photo?');
+    if (!confirmed) return;
+
     try {
+      await this.hapticService.medium();
       await this.photoService.deletePhoto(photo.path);
 
       const updatedPhotos = this.workOrder.photos.filter((_, i) => i !== index);
@@ -1176,9 +1273,11 @@ export class WorkOrderDetailComponent implements OnInit {
         retryCount: 0
       });
 
+      await this.hapticService.success();
       this.toastService.success('Photo deleted successfully!');
     } catch (error) {
       console.error('Error deleting photo:', error);
+      await this.hapticService.error();
       this.toastService.error('Failed to delete photo. Please try again.');
     }
   }
@@ -1393,5 +1492,30 @@ export class WorkOrderDetailComponent implements OnInit {
     }
 
     return locations;
+  }
+
+  onImageError(event: Event, photo: any) {
+    const img = event.target as HTMLImageElement;
+    // If image fails to load and it's a local photo, show placeholder
+    if (photo.isLocal && photo.base64Data) {
+      img.src = `data:image/jpeg;base64,${photo.base64Data}`;
+    } else {
+      // Show a placeholder icon for broken images
+      img.style.display = 'none';
+      const parent = img.parentElement;
+      if (parent) {
+        parent.style.display = 'flex';
+        parent.style.alignItems = 'center';
+        parent.style.justifyContent = 'center';
+        parent.style.background = 'var(--glass-bg-light)';
+        parent.innerHTML = `
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        `;
+      }
+    }
   }
 }

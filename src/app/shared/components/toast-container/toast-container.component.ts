@@ -137,8 +137,8 @@ import { ToastService } from '../../../core/services/toast.service';
 
     .toast-close {
       flex-shrink: 0;
-      width: 24px;
-      height: 24px;
+      min-width: 44px;
+      min-height: 44px;
       background: transparent;
       border: none;
       color: var(--color-text-tertiary);

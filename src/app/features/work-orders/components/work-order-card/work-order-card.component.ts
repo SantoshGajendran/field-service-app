@@ -1,6 +1,7 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkOrder } from '../../../../core/models/work-order.model';
+import { HapticService } from '../../../../core/services/haptic.service';
 
 @Component({
   selector: 'app-work-order-card',
@@ -239,7 +240,8 @@ import { WorkOrder } from '../../../../core/models/work-order.model';
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 10px 20px;
+      padding: 12px 24px;
+      min-height: 48px;
       border-radius: var(--radius-full);
       transition: all var(--transition-base);
       box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
@@ -276,6 +278,8 @@ export class WorkOrderCardComponent {
   @Input({ required: true }) workOrder!: WorkOrder;
   @Output() cardClick = new EventEmitter<WorkOrder>();
 
+  private hapticService = inject(HapticService);
+
   get statusClass(): string {
     switch (this.workOrder.status) {
       case 'OPEN': return 'status-open';
@@ -285,7 +289,8 @@ export class WorkOrderCardComponent {
     }
   }
 
-  onClick(): void {
+  async onClick(): Promise<void> {
+    await this.hapticService.light();
     this.cardClick.emit(this.workOrder);
   }
 }

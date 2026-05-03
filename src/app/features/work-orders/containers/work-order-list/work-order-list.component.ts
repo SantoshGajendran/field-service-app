@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { WorkOrderRepository } from '../../../../core/repositories/work-order.repository';
 import { WorkOrderCardComponent } from '../../components/work-order-card/work-order-card.component';
 import { WorkOrder } from '../../../../core/models/work-order.model';
+import { HapticService } from '../../../../core/services/haptic.service';
 import { map } from 'rxjs/operators';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 
@@ -167,7 +168,8 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
       color: var(--color-text-secondary);
-      padding: 8px 16px;
+      padding: 12px 20px;
+      min-height: 48px;
       border-radius: var(--radius-full);
       font-size: 0.8rem;
       font-weight: 600;
@@ -315,11 +317,63 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
         max-width: 300px;
       }
     }
+
+    /* Landscape Mode Optimization */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .list-header {
+        margin-bottom: 12px;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .filter-controls {
+        gap: 6px;
+      }
+
+      .filter-btn {
+        padding: 8px 16px;
+        font-size: 0.75rem;
+      }
+
+      .search-bar {
+        padding: 10px 16px;
+        margin-bottom: 12px;
+      }
+
+      .stats-bar {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .stat-value {
+        font-size: 1.25rem;
+      }
+    }
+
+    /* Tablet Landscape - Two Column Layout */
+    @media (orientation: landscape) and (min-width: 768px) {
+      .list-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      .stats-bar {
+        grid-column: 1 / -1;
+      }
+
+      .empty-state {
+        grid-column: 1 / -1;
+      }
+    }
   `]
 })
 export class WorkOrderListComponent {
   private workOrderRepo = inject(WorkOrderRepository);
   private router = inject(Router);
+  private hapticService = inject(HapticService);
 
   // Filter and search state
   selectedFilter: 'ALL' | WorkOrder['status'] = 'ALL';
@@ -361,7 +415,8 @@ export class WorkOrderListComponent {
     })
   );
 
-  setFilter(filter: 'ALL' | WorkOrder['status']) {
+  async setFilter(filter: 'ALL' | WorkOrder['status']) {
+    await this.hapticService.selectionChanged();
     this.selectedFilter = filter;
     this.filterSubject.next(filter);
   }
