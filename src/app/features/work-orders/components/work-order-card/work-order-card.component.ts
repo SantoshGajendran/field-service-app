@@ -242,12 +242,17 @@ import { HapticService } from '../../../../core/services/haptic.service';
       background: rgba(0, 0, 0, 0.2);
       border: 1px solid transparent;
       transition: all var(--transition-base);
+      white-space: nowrap;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
 
       .status-dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
         animation: pulse 2s ease-in-out infinite;
+        flex-shrink: 0;
       }
 
       &.status-open {

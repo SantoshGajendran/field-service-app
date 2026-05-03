@@ -5,8 +5,8 @@ import { WorkOrderRepository } from '../../../../core/repositories/work-order.re
 import { WorkOrderCardComponent } from '../../components/work-order-card/work-order-card.component';
 import { WorkOrder } from '../../../../core/models/work-order.model';
 import { HapticService } from '../../../../core/services/haptic.service';
-import { map } from 'rxjs/operators';
-import { BehaviorSubject, combineLatest } from 'rxjs';
+import { map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-work-order-list',
@@ -130,68 +130,67 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
 
       <!-- Actual Content -->
       <ng-container *ngIf="!isLoading && (filteredWorkOrders$ | async) as workOrders">
-      <ng-container *ngIf="workOrders.length > 0; else emptyState">
-        <div class="stats-bar glass-panel fade-in">
-          <div class="stat-item">
-            <span class="stat-value">{{ allWorkOrders.length }}</span>
-            <span class="stat-label">Total</span>
+        <ng-container *ngIf="workOrders.length > 0; else emptyState">
+          <div class="stats-bar glass-panel fade-in">
+            <div class="stat-item">
+              <span class="stat-value">{{ allWorkOrders.length }}</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ getStatusCount(allWorkOrders, 'OPEN') }}</span>
+              <span class="stat-label">Open</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ getStatusCount(allWorkOrders, 'IN_PROGRESS') }}</span>
+              <span class="stat-label">Active</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ getStatusCount(allWorkOrders, 'COMPLETED') }}</span>
+              <span class="stat-label">Done</span>
+            </div>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value">{{ getStatusCount(allWorkOrders, 'OPEN') }}</span>
-            <span class="stat-label">Open</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value">{{ getStatusCount(allWorkOrders, 'IN_PROGRESS') }}</span>
-            <span class="stat-label">Active</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value">{{ getStatusCount(allWorkOrders, 'COMPLETED') }}</span>
-            <span class="stat-label">Done</span>
-          </div>
-        </div>
 
-        <app-work-order-card
-          *ngFor="let wo of workOrders; trackBy: trackByWorkOrderId"
-          [workOrder]="wo"
-          (cardClick)="onWorkOrderClick($event)"
-          (completeAction)="onCompleteWorkOrder($event)"
-          (deleteAction)="onDeleteWorkOrder($event)">
-        </app-work-order-card>
-      </ng-container>
+          <app-work-order-card
+            *ngFor="let wo of workOrders; trackBy: trackByWorkOrderId"
+            [workOrder]="wo"
+            (cardClick)="onWorkOrderClick($event)"
+            (completeAction)="onCompleteWorkOrder($event)"
+            (deleteAction)="onDeleteWorkOrder($event)">
+          </app-work-order-card>
+        </ng-container>
 
-      <ng-template #emptyState>
-        <div class="empty-state glass-panel fade-in">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 11l3 3L22 4"></path>
-              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
-            </svg>
-          </div>
-          <h3>All Caught Up!</h3>
-          <p>No tasks match your current filter.</p>
-          <div class="empty-actions">
-            <button class="action-btn primary" (click)="clearFilters()" *ngIf="selectedFilter !== 'ALL' || searchTerm">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="1 4 1 10 7 10"></polyline>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        <ng-template #emptyState>
+          <div class="empty-state glass-panel fade-in">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
               </svg>
-              Clear Filters
-            </button>
-            <button class="action-btn secondary" (click)="refreshData()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <polyline points="1 20 1 14 7 14"></polyline>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-              </svg>
-              Refresh
-            </button>
+            </div>
+            <h3>All Caught Up!</h3>
+            <p>No tasks match your current filter.</p>
+            <div class="empty-actions">
+              <button class="action-btn primary" (click)="clearFilters()" *ngIf="selectedFilter !== 'ALL' || searchTerm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Clear Filters
+              </button>
+              <button class="action-btn secondary" (click)="refreshData()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Refresh
+              </button>
+            </div>
           </div>
-        </div>
-      </ng-template>
-    </div>
+        </ng-template>
       </ng-container>
     </div>
   `,
@@ -271,7 +270,13 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
     .filter-controls {
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
 
     .filter-btn {
@@ -664,6 +669,18 @@ export class WorkOrderListComponent {
 
   private filterSubject = new BehaviorSubject<'ALL' | WorkOrder['status']>('ALL');
   private searchSubject = new BehaviorSubject<string>('');
+  private searchInputSubject = new Subject<string>();
+
+  constructor() {
+    // Set up debounced search
+    this.searchInputSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(term => {
+      this.searchTerm = term;
+      this.searchSubject.next(term);
+    });
+  }
 
   // Combined filtered work orders
   filteredWorkOrders$ = combineLatest([
@@ -710,13 +727,13 @@ export class WorkOrderListComponent {
 
   onSearchChange(event: Event) {
     const input = event.target as HTMLInputElement;
-    this.searchTerm = input.value;
-    this.searchSubject.next(input.value);
+    this.searchInputSubject.next(input.value);
   }
 
   async clearSearch() {
     await this.hapticService.light();
     this.searchTerm = '';
+    this.searchInputSubject.next('');
     this.searchSubject.next('');
   }
 
@@ -725,6 +742,7 @@ export class WorkOrderListComponent {
     this.selectedFilter = 'ALL';
     this.filterSubject.next('ALL');
     this.searchTerm = '';
+    this.searchInputSubject.next('');
     this.searchSubject.next('');
   }
 
