@@ -9,7 +9,10 @@ import { SyncItem } from '../../../core/models/sync-item.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="sync-queue-panel glass-panel" [class.open]="isOpen">
+    <div class="sync-queue-panel glass-panel"
+         [class.open]="isOpen"
+         [class.hidden]="!shouldShow"
+         *ngIf="shouldShow">
       <div class="header" (click)="toggleOpen()">
         <div class="title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -97,6 +100,12 @@ import { SyncItem } from '../../../core/models/sync-item.model';
       overflow: hidden;
       transition: all var(--transition-base);
       max-height: 56px;
+
+      &.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(400px);
+      }
 
       &.open {
         max-height: 600px;
@@ -352,6 +361,13 @@ export class SyncQueueViewerComponent {
 
   queue$ = this.queueRepo.syncQueue$;
   isOpen = false;
+
+  // Show only when there are items in the queue or in debug mode
+  get shouldShow(): boolean {
+    // Check for debug mode via localStorage or environment
+    const debugMode = localStorage.getItem('sync-queue-debug') === 'true';
+    return debugMode;
+  }
 
   toggleOpen() {
     this.isOpen = !this.isOpen;

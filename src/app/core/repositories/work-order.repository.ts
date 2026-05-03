@@ -107,4 +107,21 @@ export class WorkOrderRepository {
     const updated = current.filter(w => w.id !== id);
     await this.saveAll(updated);
   }
+
+  public async syncWorkOrders(): Promise<void> {
+    try {
+      const workOrders = await new Promise<WorkOrder[]>((resolve, reject) => {
+        this.supabase.getWorkOrders().subscribe({
+          next: (data) => resolve(data),
+          error: (err) => reject(err)
+        });
+      });
+
+      this.workOrdersSubject.next(workOrders);
+      await this.storageService.setItem(this.STORAGE_KEY, workOrders);
+    } catch (error) {
+      console.error('Error syncing work orders:', error);
+      throw error;
+    }
+  }
 }

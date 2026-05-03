@@ -339,3 +339,86 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable background animations */
+  body::before {
+    animation: none !important;
+  }
+
+  /* Disable neon pulse */
+  .neon-text-primary,
+  .neon-text-secondary {
+    animation: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Disable pulse animations */
+  .pulse {
+    animation: none !important;
+  }
+
+  /* Disable shimmer */
+  .skeleton {
+    animation: none !important;
+  }
+}
+
+/* Performance optimizations for animations */
+.neon-text-primary,
+.neon-text-secondary,
+.pulse,
+.glass-panel {
+  will-change: auto;
+}
+
+/* Only hint GPU acceleration for actively animating elements */
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(14, 165, 233, 0.6), 0 0 40px rgba(14, 165, 233, 0.4);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(14, 165, 233, 0.8), 0 0 60px rgba(14, 165, 233, 0.6);
+  }
+}
+
+@keyframes backgroundPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Simplify expensive animations on low-end devices */
+@media (max-width: 768px) and (max-height: 1024px) {
+  /* Reduce background animation complexity */
+  body::before {
+    animation-duration: 20s;
+  }
+
+  /* Simplify glass panel hover effects */
+  .glass-panel:hover {
+    transform: none;
+  }
+
+  .glass-panel::before {
+    display: none;
+  }
+
+  /* Reduce neon glow intensity */
+  .neon-text-primary {
+    text-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+  }
+
+  .neon-text-secondary {
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  }
+}

@@ -13,6 +13,18 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
   standalone: true,
   imports: [CommonModule, WorkOrderCardComponent],
   template: `
+    <!-- Pull to Refresh Indicator -->
+    <div class="pull-to-refresh-indicator" [class.visible]="pullDistance > 0" [style.transform]="'translateY(' + Math.min(pullDistance, 80) + 'px)'">
+      <div class="refresh-spinner" [class.spinning]="isRefreshing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </div>
+      <span class="refresh-text">{{ isRefreshing ? 'Refreshing...' : (pullDistance > 60 ? 'Release to refresh' : 'Pull to refresh') }}</span>
+    </div>
+
     <div class="list-header fade-in">
       <div class="header-content">
         <h1 class="page-title neon-text-primary">Assigned Tasks</h1>
@@ -81,9 +93,23 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
         (input)="onSearchChange($event)"
         [value]="searchTerm"
       />
+      <button
+        *ngIf="searchTerm"
+        class="clear-search-btn"
+        (click)="clearSearch()"
+        aria-label="Clear search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
-    <div class="list-container" *ngIf="filteredWorkOrders$ | async as workOrders">
+    <div class="list-container"
+         (touchstart)="onTouchStart($event)"
+         (touchmove)="onTouchMove($event)"
+         (touchend)="onTouchEnd()"
+         *ngIf="filteredWorkOrders$ | async as workOrders">
       <ng-container *ngIf="workOrders.length > 0; else emptyState">
         <div class="stats-bar glass-panel fade-in">
           <div class="stat-item">
@@ -124,11 +150,74 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
           </div>
           <h3>All Caught Up!</h3>
           <p>No tasks match your current filter.</p>
+          <div class="empty-actions">
+            <button class="action-btn primary" (click)="clearFilters()" *ngIf="selectedFilter !== 'ALL' || searchTerm">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              Clear Filters
+            </button>
+            <button class="action-btn secondary" (click)="refreshData()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
       </ng-template>
     </div>
   `,
   styles: [`
+    .pull-to-refresh-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      transform: translateY(-100%);
+    }
+
+    .pull-to-refresh-indicator.visible {
+      opacity: 1;
+    }
+
+    .refresh-spinner {
+      width: 32px;
+      height: 32px;
+      color: var(--color-accent-primary);
+    }
+
+    .refresh-spinner.spinning svg {
+      animation: spin 1s linear infinite;
+    }
+
+    .refresh-text {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .list-header {
       display: flex;
       justify-content: space-between;
@@ -233,6 +322,30 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
       }
     }
 
+    .clear-search-btn {
+      flex-shrink: 0;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: all var(--transition-base);
+
+      &:hover {
+        background: var(--glass-bg-light);
+        color: var(--color-text-primary);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
     .stats-bar {
       display: flex;
       justify-content: space-around;
@@ -316,6 +429,63 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
         font-size: 1rem;
         max-width: 300px;
       }
+
+      .empty-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 24px;
+      }
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        min-height: 48px;
+        border: none;
+        border-radius: var(--radius-full);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-base);
+
+        &.primary {
+          background: var(--color-accent-primary);
+          color: white;
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+        }
+
+        &.secondary {
+          background: var(--glass-bg);
+          color: var(--color-text-primary);
+          border: 1px solid var(--glass-border);
+
+          &:hover {
+            background: var(--glass-bg-light);
+            border-color: var(--color-accent-primary);
+          }
+
+          &:active {
+            transform: scale(0.98);
+          }
+        }
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
     }
 
     /* Landscape Mode Optimization */
@@ -380,6 +550,15 @@ export class WorkOrderListComponent {
   searchTerm = '';
   allWorkOrders: WorkOrder[] = [];
 
+  // Pull to refresh state
+  pullDistance = 0;
+  isRefreshing = false;
+  private startY = 0;
+  private isPulling = false;
+
+  // Expose Math for template
+  Math = Math;
+
   private filterSubject = new BehaviorSubject<'ALL' | WorkOrder['status']>('ALL');
   private searchSubject = new BehaviorSubject<string>('');
 
@@ -425,6 +604,71 @@ export class WorkOrderListComponent {
     const input = event.target as HTMLInputElement;
     this.searchTerm = input.value;
     this.searchSubject.next(input.value);
+  }
+
+  async clearSearch() {
+    await this.hapticService.light();
+    this.searchTerm = '';
+    this.searchSubject.next('');
+  }
+
+  async clearFilters() {
+    await this.hapticService.light();
+    this.selectedFilter = 'ALL';
+    this.filterSubject.next('ALL');
+    this.searchTerm = '';
+    this.searchSubject.next('');
+  }
+
+  async refreshData() {
+    await this.hapticService.medium();
+    this.isRefreshing = true;
+
+    try {
+      await this.workOrderRepo.syncWorkOrders();
+      await this.hapticService.success();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      await this.hapticService.error();
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  // Pull to refresh handlers
+  onTouchStart(event: TouchEvent) {
+    const container = event.currentTarget as HTMLElement;
+    if (container.scrollTop === 0) {
+      this.startY = event.touches[0].clientY;
+      this.isPulling = true;
+    }
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (!this.isPulling || this.isRefreshing) return;
+
+    const currentY = event.touches[0].clientY;
+    const diff = currentY - this.startY;
+
+    if (diff > 0) {
+      this.pullDistance = Math.min(diff * 0.5, 80);
+
+      if (this.pullDistance > 10) {
+        event.preventDefault();
+      }
+    }
+  }
+
+  async onTouchEnd() {
+    if (!this.isPulling) return;
+
+    this.isPulling = false;
+
+    if (this.pullDistance > 60 && !this.isRefreshing) {
+      await this.refreshData();
+    }
+
+    this.pullDistance = 0;
   }
 
   onWorkOrderClick(workOrder: WorkOrder) {
