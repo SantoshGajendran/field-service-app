@@ -264,6 +264,20 @@ import { take } from 'rxjs';
               </div>
             </div>
 
+            <!-- Upload Progress Indicator -->
+            <div class="upload-progress" *ngIf="isUploadingPhoto && (uploadProgress$ | async) as progress">
+              <div class="progress-header">
+                <span class="progress-label">Uploading photo...</span>
+                <span class="progress-percentage">{{ progress.percentage }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="progress.percentage"></div>
+              </div>
+              <div class="progress-details">
+                <span class="progress-size">{{ formatBytes(progress.loaded) }} / {{ formatBytes(progress.total) }}</span>
+              </div>
+            </div>
+
             <p class="no-photos" *ngIf="!workOrder || !workOrder.photos || workOrder.photos.length === 0">
               No photos added yet
             </p>
@@ -742,6 +756,62 @@ import { take } from 'rxjs';
       }
     }
 
+    .upload-progress {
+      background: var(--glass-bg-light);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      margin-top: 1rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .progress-percentage {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--color-accent-primary);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--glass-bg);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease-out;
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+    }
+
+    .progress-details {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .progress-size {
+      font-size: 0.75rem;
+      color: var(--color-text-tertiary);
+      font-family: var(--font-mono);
+    }
+
     .no-photos {
       text-align: center;
       color: var(--color-text-tertiary);
@@ -1044,6 +1114,9 @@ export class WorkOrderDetailComponent implements OnInit {
   isUploadingPhoto = false;
   isCheckingIn = false;
   isCheckingOut = false;
+
+  // Upload progress
+  uploadProgress$ = this.photoService.uploadProgress$;
 
   editForm = this.fb.group({
     status: ['', Validators.required],
@@ -1454,6 +1527,14 @@ export class WorkOrderDetailComponent implements OnInit {
 
   formatDuration(minutes: number): string {
     return this.locationService.formatDuration(minutes);
+  }
+
+  formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   }
 
   getMapLocations(): MapLocation[] {

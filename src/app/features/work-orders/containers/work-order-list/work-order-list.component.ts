@@ -108,8 +108,28 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
     <div class="list-container"
          (touchstart)="onTouchStart($event)"
          (touchmove)="onTouchMove($event)"
-         (touchend)="onTouchEnd()"
-         *ngIf="filteredWorkOrders$ | async as workOrders">
+         (touchend)="onTouchEnd()">
+
+      <!-- Loading Skeleton -->
+      <ng-container *ngIf="isLoading">
+        <div class="skeleton-card glass-panel" *ngFor="let item of [1,2,3,4,5]">
+          <div class="skeleton-header">
+            <div class="skeleton-badge"></div>
+            <div class="skeleton-status"></div>
+          </div>
+          <div class="skeleton-title"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text short"></div>
+          <div class="skeleton-footer">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Actual Content -->
+      <ng-container *ngIf="!isLoading && (filteredWorkOrders$ | async) as workOrders">
       <ng-container *ngIf="workOrders.length > 0; else emptyState">
         <div class="stats-bar glass-panel fade-in">
           <div class="stat-item">
@@ -169,6 +189,8 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
           </div>
         </div>
       </ng-template>
+    </div>
+      </ng-container>
     </div>
   `,
   styles: [`
@@ -488,6 +510,82 @@ import { BehaviorSubject, combineLatest } from 'rxjs';
       }
     }
 
+    /* Skeleton Loading States */
+    .skeleton-card {
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .skeleton-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .skeleton-badge {
+      width: 80px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-light) 50%, var(--glass-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-status {
+      width: 60px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-light) 50%, var(--glass-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-title {
+      width: 70%;
+      height: 20px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.75rem;
+      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-light) 50%, var(--glass-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-text {
+      width: 100%;
+      height: 16px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-light) 50%, var(--glass-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+
+      &.short {
+        width: 60%;
+      }
+    }
+
+    .skeleton-footer {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .skeleton-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-light) 50%, var(--glass-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
     /* Landscape Mode Optimization */
     @media (orientation: landscape) and (max-height: 600px) {
       .list-header {
@@ -550,6 +648,9 @@ export class WorkOrderListComponent {
   searchTerm = '';
   allWorkOrders: WorkOrder[] = [];
 
+  // Loading state
+  isLoading = true;
+
   // Pull to refresh state
   pullDistance = 0;
   isRefreshing = false;
@@ -569,6 +670,11 @@ export class WorkOrderListComponent {
     this.searchSubject
   ]).pipe(
     map(([workOrders, filter, search]) => {
+      // Hide loading once data arrives
+      if (workOrders.length > 0) {
+        this.isLoading = false;
+      }
+
       // Store all work orders for stats
       this.allWorkOrders = workOrders;
 
@@ -623,6 +729,7 @@ export class WorkOrderListComponent {
   async refreshData() {
     await this.hapticService.medium();
     this.isRefreshing = true;
+    this.isLoading = true;
 
     try {
       await this.workOrderRepo.syncWorkOrders();
@@ -632,6 +739,10 @@ export class WorkOrderListComponent {
       await this.hapticService.error();
     } finally {
       this.isRefreshing = false;
+      // Keep loading state for a moment to show skeleton
+      setTimeout(() => {
+        this.isLoading = false;
+      }, 300);
     }
   }
 

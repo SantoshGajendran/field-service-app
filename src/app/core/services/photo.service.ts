@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
 import { SupabaseService } from './supabase.service';
 import { NetworkService } from './network.service';
+import { BehaviorSubject } from 'rxjs';
 
 export interface PhotoData {
   url: string;
@@ -11,10 +12,19 @@ export interface PhotoData {
   base64Data?: string;
 }
 
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class PhotoService {
+  private uploadProgressSubject = new BehaviorSubject<UploadProgress>({ loaded: 0, total: 0, percentage: 0 });
+  public uploadProgress$ = this.uploadProgressSubject.asObservable();
+
   constructor(
     private supabase: SupabaseService,
     private networkService: NetworkService
@@ -60,9 +70,26 @@ export class PhotoService {
       };
     }
 
-    // If online, upload to Supabase
+    // If online, upload to Supabase with progress tracking
     try {
       const blob = this.base64ToBlob(photo.base64String, `image/${photo.format}`);
+      const fileSize = blob.size;
+
+      // Simulate progress for small files (Supabase doesn't provide native progress)
+      this.uploadProgressSubject.next({ loaded: 0, total: fileSize, percentage: 0 });
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        const current = this.uploadProgressSubject.value;
+        if (current.percentage < 90) {
+          const newPercentage = Math.min(current.percentage + 10, 90);
+          this.uploadProgressSubject.next({
+            loaded: (fileSize * newPercentage) / 100,
+            total: fileSize,
+            percentage: newPercentage
+          });
+        }
+      }, 100);
 
       const { data, error } = await this.supabase.uploadFile(
         'work-order-photos',
@@ -70,11 +97,21 @@ export class PhotoService {
         blob
       );
 
+      clearInterval(progressInterval);
+
       if (error) {
         throw error;
       }
 
+      // Complete progress
+      this.uploadProgressSubject.next({ loaded: fileSize, total: fileSize, percentage: 100 });
+
       const { data: urlData } = this.supabase.getPublicUrl('work-order-photos', fileName);
+
+      // Reset progress after a short delay
+      setTimeout(() => {
+        this.uploadProgressSubject.next({ loaded: 0, total: 0, percentage: 0 });
+      }, 1000);
 
       return {
         url: urlData.publicUrl,
@@ -83,6 +120,9 @@ export class PhotoService {
         isLocal: false
       };
     } catch (error) {
+      // Reset progress on error
+      this.uploadProgressSubject.next({ loaded: 0, total: 0, percentage: 0 });
+
       // If upload fails, store locally as fallback
       const localUrl = `data:image/${photo.format};base64,${photo.base64String}`;
       return {
