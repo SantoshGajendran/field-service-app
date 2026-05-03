@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Connection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://dvqmmnvfsjadzrjbdkya.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2cW1tbnZmc2phZHpyamJka3lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MzQ1MzQsImV4cCI6MjA5MzMxMDUzNH0.sNMRa17GqUTA22a-tqgCU1GKGiqrETl5zy6ys3Mylak';
+
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Test 1: Get work orders
+                resultDiv.innerHTML += '<p>Testing work orders...</p>';
+                const { data, error } = await supabase
+                    .from('work_orders')
+                    .select('*')
+                    .limit(5);
+
+                if (error) {
+                    resultDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+                } else {
+                    resultDiv.innerHTML += '<p style="color: green;">Success! Found ' + data.length + ' work orders</p>';
+                    resultDiv.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                resultDiv.innerHTML += '<p style="color: red;">Exception: ' + err.message + '</p>';
+            }
+        }
+
+        testConnection();
+    </script>
+</body>
+</html>

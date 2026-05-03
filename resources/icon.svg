@@ -1,0 +1,130 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with radial gradient -->
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#020617;stop-opacity:1" />
+    </radialGradient>
+
+    <!-- Glow effects -->
+    <filter id="strongGlow">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Gradients -->
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="toolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glass effect -->
+    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.05" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgGradient)"/>
+
+  <!-- Outer glow circle -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="url(#primaryGradient)" stroke-width="3" opacity="0.3" filter="url(#softGlow)"/>
+  <circle cx="512" cy="512" r="340" fill="none" stroke="url(#primaryGradient)" stroke-width="2" opacity="0.2" filter="url(#softGlow)"/>
+
+  <!-- Main clipboard/document shape with glassmorphism -->
+  <g filter="url(#strongGlow)">
+    <!-- Clipboard background -->
+    <rect x="312" y="220" width="400" height="580" rx="40" fill="url(#primaryGradient)" opacity="0.15"/>
+    <rect x="312" y="220" width="400" height="580" rx="40" fill="url(#glassGradient)"/>
+    <rect x="312" y="220" width="400" height="580" rx="40" fill="none" stroke="url(#primaryGradient)" stroke-width="4"/>
+
+    <!-- Clipboard clip at top -->
+    <rect x="432" y="180" width="160" height="80" rx="20" fill="url(#primaryGradient)"/>
+    <rect x="442" y="190" width="140" height="60" rx="15" fill="#0f172a"/>
+    <rect x="442" y="190" width="140" height="60" rx="15" fill="url(#glassGradient)"/>
+  </g>
+
+  <!-- Work order lines (document content) -->
+  <g opacity="0.8">
+    <rect x="372" y="320" width="280" height="16" rx="8" fill="url(#primaryGradient)" opacity="0.6"/>
+    <rect x="372" y="360" width="220" height="12" rx="6" fill="url(#primaryGradient)" opacity="0.4"/>
+    <rect x="372" y="390" width="240" height="12" rx="6" fill="url(#primaryGradient)" opacity="0.4"/>
+  </g>
+
+  <!-- Checklist items with checkmarks -->
+  <g>
+    <!-- Checklist item 1 - Completed -->
+    <rect x="372" y="450" width="40" height="40" rx="8" fill="none" stroke="url(#checkGradient)" stroke-width="3" filter="url(#softGlow)"/>
+    <path d="M 382 470 L 392 480 L 407 460" fill="none" stroke="url(#checkGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#softGlow)"/>
+    <rect x="432" y="460" width="180" height="12" rx="6" fill="url(#checkGradient)" opacity="0.5"/>
+
+    <!-- Checklist item 2 - Completed -->
+    <rect x="372" y="520" width="40" height="40" rx="8" fill="none" stroke="url(#checkGradient)" stroke-width="3" filter="url(#softGlow)"/>
+    <path d="M 382 540 L 392 550 L 407 530" fill="none" stroke="url(#checkGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#softGlow)"/>
+    <rect x="432" y="530" width="160" height="12" rx="6" fill="url(#checkGradient)" opacity="0.5"/>
+
+    <!-- Checklist item 3 - Pending -->
+    <rect x="372" y="590" width="40" height="40" rx="8" fill="none" stroke="url(#primaryGradient)" stroke-width="3" opacity="0.4"/>
+    <rect x="432" y="600" width="140" height="12" rx="6" fill="url(#primaryGradient)" opacity="0.3"/>
+  </g>
+
+  <!-- Wrench/Tool icon (field service symbol) -->
+  <g transform="translate(620, 650)" filter="url(#strongGlow)">
+    <!-- Wrench -->
+    <path d="M 0 -30 L 15 -15 L 30 -30 L 40 -20 L 25 -5 L 40 10 L 30 20 L 15 5 L -20 40 L -40 20 L -5 -15 L -20 -30 L -10 -40 Z"
+          fill="url(#toolGradient)"
+          stroke="#f59e0b"
+          stroke-width="2"/>
+    <!-- Wrench highlight -->
+    <path d="M 5 -25 L 15 -15 L 25 -25"
+          fill="none"
+          stroke="#ffffff"
+          stroke-width="3"
+          opacity="0.4"
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Location pin (field service indicator) -->
+  <g transform="translate(380, 680)" filter="url(#strongGlow)">
+    <path d="M 0 -30 C -15 -30 -25 -20 -25 -5 C -25 10 0 30 0 30 C 0 30 25 10 25 -5 C 25 -20 15 -30 0 -30 Z"
+          fill="url(#primaryGradient)"
+          stroke="#0ea5e9"
+          stroke-width="2"/>
+    <circle cx="0" cy="-5" r="8" fill="#ffffff" opacity="0.8"/>
+  </g>
+
+  <!-- Pulsing center indicator -->
+  <circle cx="512" cy="500" r="8" fill="#0ea5e9" opacity="0.6" filter="url(#strongGlow)">
+    <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.6;0.3;0.6" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Corner accents -->
+  <path d="M 332 240 L 332 260 M 332 240 L 352 240" stroke="url(#primaryGradient)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 692 240 L 692 260 M 692 240 L 672 240" stroke="url(#primaryGradient)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 332 780 L 332 760 M 332 780 L 352 780" stroke="url(#primaryGradient)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 692 780 L 692 760 M 692 780 L 672 780" stroke="url(#primaryGradient)" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+</svg>

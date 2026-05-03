@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(awk '{print \"  \" $9 \" \\(\" $5 \"\\)\"}')",
+      "Bash(awk '{sum+=$5} END {print \"  \" sum/1024 \" KB\"}')",
+      "Bash(npm start *)",
+      "Bash(npx ng *)",
+      "Bash(curl -s http://localhost:4200)",
+      "Bash(npx cap *)",
+      "Bash(npm install *)",
+      "Bash(npx *)",
+      "Bash(./gradlew clean *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(explorer.exe *)",
+      "Bash(start *)",
+      "Bash(cmd.exe /c start \"\" \"$\\(pwd\\)/app/build/outputs/apk/debug\")",
+      "Bash(taskkill //F //IM node.exe)"
+    ]
+  }
+}
