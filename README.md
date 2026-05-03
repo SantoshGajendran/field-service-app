@@ -411,11 +411,6 @@ This project is proprietary software for Saazvat Field Service.
 
 ---
 
-## 👥 Team
-
-**Development:** Claude (Kiro AI)  
-**Project:** Saazvat Field Service Application  
-**Client:** Santosh G
 
 ---
 
