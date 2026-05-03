@@ -60,10 +60,28 @@ export class SyncService {
       console.log(`Starting sync process for ${queue.length} items...`);
       let successCount = 0;
       let failCount = 0;
+      let permanentFailCount = 0;
 
       // FIFO order: Process items one by one
       for (const item of queue) {
+        // Skip items that are already marked as permanently failed
+        if (item.status === 'FAILED') {
+          permanentFailCount++;
+          continue;
+        }
+
+        // Check if enough time has passed for retry (exponential backoff)
+        if (item.retryCount > 0 && item.lastAttemptAt) {
+          const backoffMs = Math.min(1000 * Math.pow(2, item.retryCount), 60000); // Max 60s
+          const timeSinceLastAttempt = Date.now() - new Date(item.lastAttemptAt).getTime();
+          if (timeSinceLastAttempt < backoffMs) {
+            console.log(`Skipping item ${item.id} - backoff period not elapsed`);
+            continue;
+          }
+        }
+
         try {
+          item.lastAttemptAt = new Date().toISOString();
           await this.processSyncItem(item);
           // If successful, remove from queue
           await this.syncQueueRepo.remove(item.id);
@@ -74,9 +92,10 @@ export class SyncService {
           console.error(`Failed to sync item: ${item.id}`, error);
           failCount++;
 
-          // Implement retry logic
+          // Implement retry logic with exponential backoff
           item.retryCount = (item.retryCount || 0) + 1;
-          item.status = item.retryCount >= 3 ? 'FAILED' : 'PENDING';
+          item.status = item.retryCount >= 5 ? 'FAILED' : 'PENDING';
+          item.lastError = error instanceof Error ? error.message : String(error);
           await this.syncQueueRepo.update(item);
 
           // Stop draining if we hit network errors during sync
@@ -86,12 +105,15 @@ export class SyncService {
         }
       }
 
-      // Show summary toast
+      // Show summary toast only if there were actual sync attempts
       if (successCount > 0) {
         this.toastService.success(`Synced ${successCount} item(s) successfully`);
       }
       if (failCount > 0) {
         this.toastService.warning(`${failCount} item(s) failed to sync`);
+      }
+      if (permanentFailCount > 0) {
+        console.log(`${permanentFailCount} item(s) permanently failed - manual intervention required`);
       }
     } catch (err) {
       console.error('Error while draining sync queue', err);
@@ -100,10 +122,11 @@ export class SyncService {
       this.isSyncing = false;
       this.syncingSubject.next(false);
 
-      // If queue still has items and we are online, trigger another drain
+      // If queue still has pending items and we are online, trigger another drain
       const remaining = await this.syncQueueRepo.getAll();
-      if (remaining.length > 0 && this.networkService.currentStatus) {
-        setTimeout(() => this.drainSyncQueue(), 1000);
+      const pendingItems = remaining.filter(item => item.status === 'PENDING');
+      if (pendingItems.length > 0 && this.networkService.currentStatus) {
+        setTimeout(() => this.drainSyncQueue(), 2000);
       }
     }
   }
@@ -134,8 +157,8 @@ export class SyncService {
             uploadedPhotos.push(uploadedPhoto);
           } catch (error) {
             console.error('Failed to upload local photo:', error);
-            // Keep the local photo if upload fails
-            uploadedPhotos.push(photo);
+            // If photo upload fails, throw error to retry the entire sync item
+            throw new Error(`Photo upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
         } else {
           uploadedPhotos.push(photo);
@@ -154,7 +177,8 @@ export class SyncService {
         workOrder.signature_url = signatureData.url;
       } catch (error) {
         console.error('Failed to upload signature:', error);
-        // Keep local signature if upload fails
+        // If signature upload fails, throw error to retry the entire sync item
+        throw new Error(`Signature upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 

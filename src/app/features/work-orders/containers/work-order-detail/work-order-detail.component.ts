@@ -1049,7 +1049,16 @@ export class WorkOrderDetailComponent implements OnInit {
     try {
       this.isUploadingPhoto = true;
       const photo = await this.photoService.takePhoto();
+
+      if (!photo || !photo.base64String) {
+        throw new Error('No photo data captured');
+      }
+
       const photoData = await this.photoService.uploadPhoto(photo, this.workOrder.id);
+
+      if (!photoData) {
+        throw new Error('Photo upload returned no data');
+      }
 
       const updatedWorkOrder: WorkOrder = {
         ...this.workOrder,
@@ -1060,6 +1069,7 @@ export class WorkOrderDetailComponent implements OnInit {
       await this.workOrderRepo.update(updatedWorkOrder);
       this.workOrder = updatedWorkOrder;
 
+      // Only add to sync queue if we have valid photo data
       this.syncService.addToSyncQueue({
         id: crypto.randomUUID(),
         entityType: 'WORK_ORDER',
@@ -1071,10 +1081,15 @@ export class WorkOrderDetailComponent implements OnInit {
         retryCount: 0
       });
 
-      this.toastService.success('Photo uploaded successfully!');
+      if (photoData.isLocal) {
+        this.toastService.info('Photo saved locally. Will sync when online.');
+      } else {
+        this.toastService.success('Photo uploaded successfully!');
+      }
     } catch (error) {
       console.error('Error taking photo:', error);
-      this.toastService.error('Failed to take photo. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.toastService.error(`Failed to take photo: ${errorMessage}`);
     } finally {
       this.isUploadingPhoto = false;
     }
@@ -1086,7 +1101,16 @@ export class WorkOrderDetailComponent implements OnInit {
     try {
       this.isUploadingPhoto = true;
       const photo = await this.photoService.pickFromGallery();
+
+      if (!photo || !photo.base64String) {
+        throw new Error('No photo data selected');
+      }
+
       const photoData = await this.photoService.uploadPhoto(photo, this.workOrder.id);
+
+      if (!photoData) {
+        throw new Error('Photo upload returned no data');
+      }
 
       const updatedWorkOrder: WorkOrder = {
         ...this.workOrder,
@@ -1097,6 +1121,7 @@ export class WorkOrderDetailComponent implements OnInit {
       await this.workOrderRepo.update(updatedWorkOrder);
       this.workOrder = updatedWorkOrder;
 
+      // Only add to sync queue if we have valid photo data
       this.syncService.addToSyncQueue({
         id: crypto.randomUUID(),
         entityType: 'WORK_ORDER',
@@ -1108,10 +1133,15 @@ export class WorkOrderDetailComponent implements OnInit {
         retryCount: 0
       });
 
-      this.toastService.success('Photo uploaded successfully!');
+      if (photoData.isLocal) {
+        this.toastService.info('Photo saved locally. Will sync when online.');
+      } else {
+        this.toastService.success('Photo uploaded successfully!');
+      }
     } catch (error) {
       console.error('Error picking photo:', error);
-      this.toastService.error('Failed to pick photo. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.toastService.error(`Failed to pick photo: ${errorMessage}`);
     } finally {
       this.isUploadingPhoto = false;
     }

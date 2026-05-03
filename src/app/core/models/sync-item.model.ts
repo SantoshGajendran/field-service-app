@@ -7,4 +7,6 @@ export interface SyncItem {
   createdAt: string;
   status: string;
   retryCount: number;
+  lastAttemptAt?: string;
+  lastError?: string;
 }

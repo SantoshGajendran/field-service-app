@@ -31,12 +31,20 @@ import { SyncItem } from '../../../core/models/sync-item.model';
             </svg>
             Sync Now
           </button>
+          <button (click)="clearFailedItems()" class="action-btn secondary" aria-label="Clear failed items">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            Clear Failed
+          </button>
           <button (click)="clearQueue()" class="action-btn warning" aria-label="Clear queue">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
-            Clear
+            Clear All
           </button>
         </div>
 
@@ -58,6 +66,14 @@ import { SyncItem } from '../../../core/models/sync-item.model';
               <span>ID: {{ item.id.substring(0,8) }}...</span>
               <span>Retries: {{ item.retryCount || 0 }}</span>
               <span class="status" [class]="item.status.toLowerCase()">{{ item.status }}</span>
+            </div>
+            <div class="item-error" *ngIf="item.lastError">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>{{ item.lastError }}</span>
             </div>
           </div>
         </div>
@@ -141,9 +157,11 @@ import { SyncItem } from '../../../core/models/sync-item.model';
     .actions {
       display: flex;
       gap: 0.5rem;
+      flex-wrap: wrap;
 
       .action-btn {
         flex: 1;
+        min-width: 100px;
         padding: 0.625rem 1rem;
         border-radius: var(--radius-md);
         border: none;
@@ -162,6 +180,17 @@ import { SyncItem } from '../../../core/models/sync-item.model';
           &:hover {
             background: rgba(14, 165, 233, 0.25);
             box-shadow: 0 0 16px rgba(14, 165, 233, 0.3);
+          }
+        }
+
+        &.secondary {
+          background: rgba(251, 191, 36, 0.15);
+          color: #f59e0b;
+          border: 1px solid rgba(251, 191, 36, 0.3);
+
+          &:hover {
+            background: rgba(251, 191, 36, 0.25);
+            box-shadow: 0 0 16px rgba(251, 191, 36, 0.3);
           }
         }
 
@@ -280,6 +309,29 @@ import { SyncItem } from '../../../core/models/sync-item.model';
           }
         }
       }
+
+      .item-error {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 8px;
+        background: rgba(239, 68, 68, 0.1);
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 0.75rem;
+        color: #ef4444;
+        line-height: 1.4;
+
+        svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        span {
+          word-break: break-word;
+        }
+      }
     }
 
     @keyframes slideInRight {
@@ -307,11 +359,21 @@ export class SyncQueueViewerComponent {
 
   forceSync() {
     console.log('Force sync triggered');
-    // Implement force sync logic when available on SyncService
+    this.syncService.triggerSync();
   }
 
   async clearQueue() {
+    const confirmed = confirm('Are you sure you want to clear all sync queue items? This cannot be undone.');
+    if (!confirmed) return;
+
     await this.queueRepo.saveAll([]);
-    console.log('Clear queue triggered');
+    console.log('Queue cleared');
+  }
+
+  async clearFailedItems() {
+    const queue = await this.queueRepo.getAll();
+    const nonFailedItems = queue.filter(item => item.status !== 'FAILED');
+    await this.queueRepo.saveAll(nonFailedItems);
+    console.log('Failed items cleared');
   }
 }
