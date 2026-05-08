@@ -1,0 +1,23 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Solid Background -->
+  <rect width="512" height="512" rx="115" fill="#0ea5e9"/>
+
+  <!-- Location Pin (White) -->
+  <path d="M256 128C214.579 128 181 161.579 181 203C181 265 256 384 256 384C256 384 331 265 331 203C331 161.579 297.421 128 256 128Z"
+        fill="white"/>
+
+  <!-- Inner Circle -->
+  <circle cx="256" cy="203" r="48" fill="#0284c7"/>
+
+  <!-- Wrench (Amber) -->
+  <g transform="translate(256, 203)">
+    <!-- Handle -->
+    <rect x="-5" y="-28" width="10" height="42" rx="5" fill="#f59e0b"/>
+
+    <!-- Head Left -->
+    <path d="M-15 -28 L-15 -18 L-10 -18 L-10 -13 L-5 -13 L-5 -28 Z" fill="#f59e0b"/>
+
+    <!-- Head Right -->
+    <path d="M15 -28 L15 -18 L10 -18 L10 -13 L5 -13 L5 -28 Z" fill="#f59e0b"/>
+  </g>
+</svg>

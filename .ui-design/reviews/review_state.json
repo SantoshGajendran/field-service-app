@@ -1,0 +1,17 @@
+{
+  "review_id": "field_service_app_20260503_174846",
+  "target": "entire_mobile_app",
+  "focus_areas": ["visual", "usability", "code", "performance"],
+  "context": "field_service_management",
+  "platform": "mobile",
+  "status": "complete",
+  "started_at": "2026-05-03T17:48:46.943Z",
+  "completed_at": "2026-05-03T17:51:39.330Z",
+  "issues_found": 28,
+  "severity_counts": {
+    "critical": 5,
+    "major": 8,
+    "minor": 9,
+    "suggestion": 6
+  }
+}

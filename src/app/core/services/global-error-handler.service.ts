@@ -1,15 +1,26 @@
-import { ErrorHandler, Injectable, inject } from '@angular/core';
+import { ErrorHandler, Injectable, NgZone, inject } from '@angular/core';
 import { ToastService } from './toast.service';
 
 @Injectable()
 export class GlobalErrorHandler implements ErrorHandler {
   private toastService = inject(ToastService);
+  private ngZone = inject(NgZone);
+  private isAppStable = true;
+
+  constructor() {
+    this.ngZone.run(() => {
+      this.ngZone.onStable.subscribe(() => {
+        this.isAppStable = true;
+      });
+      this.ngZone.onUnstable.subscribe(() => {
+        this.isAppStable = false;
+      });
+    });
+  }
 
   handleError(error: any): void {
-    // Log the error to console for debugging
     console.error('Global error caught:', error);
 
-    // Extract meaningful error message
     let errorMessage = 'An unexpected error occurred';
 
     if (error?.message) {
@@ -18,10 +29,24 @@ export class GlobalErrorHandler implements ErrorHandler {
       errorMessage = error;
     }
 
-    // Show user-friendly error message
-    this.toastService.error(`Error: ${errorMessage}`);
+    if (error?.stack) {
+      console.error('Error stack:', error.stack);
+    }
 
-    // Prevent the error from crashing the app
-    // The error is logged but the app continues running
+    this.ngZone.run(() => {
+      try {
+        this.toastService.error(`Error: ${errorMessage}`);
+      } catch (toastError) {
+        console.error('Failed to show error toast:', toastError);
+      }
+    });
+
+    if (!this.isAppStable) {
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          console.log('App has stabilized after error');
+        });
+      }, 100);
+    }
   }
 }

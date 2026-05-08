@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saazvat Field Service - Logo Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .card h2 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .size-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .color-swatch {
+            text-align: center;
+        }
+
+        .color-box {
+            width: 100%;
+            height: 80px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+
+        .color-hex {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .bg-dark {
+            background: #1e293b;
+            padding: 40px;
+        }
+
+        .bg-light {
+            background: #f8fafc;
+            padding: 40px;
+        }
+
+        .bg-colored {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            padding: 40px;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-section h2 {
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .info-section p {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #0ea5e9;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Saazvat Field Service</h1>
+        <p class="subtitle">Logo Design Preview</p>
+
+        <!-- Logo Variations -->
+        <div class="grid">
+            <div class="card">
+                <h2>App Icon (Gradient)</h2>
+                <div class="logo-container">
+                    <img src="assets/logo-icon.svg" alt="Logo Icon Gradient" style="width: 180px;">
+                </div>
+                <p class="size-label">Primary app icon • 512x512px</p>
+            </div>
+
+            <div class="card">
+                <h2>App Icon (Flat)</h2>
+                <div class="logo-container">
+                    <img src="assets/logo-icon-flat.svg" alt="Logo Icon Flat" style="width: 180px;">
+                </div>
+                <p class="size-label">Android recommended • 512x512px</p>
+            </div>
+
+            <div class="card">
+                <h2>App Icon (Monochrome)</h2>
+                <div class="logo-container">
+                    <img src="assets/logo-icon-mono.svg" alt="Logo Icon Mono" style="width: 180px;">
+                </div>
+                <p class="size-label">Light backgrounds • 512x512px</p>
+            </div>
+        </div>
+
+        <!-- Full Logo -->
+        <div class="card full-width">
+            <h2>Full Logo with Text</h2>
+            <div class="logo-container">
+                <img src="assets/logo-full.svg" alt="Full Logo" style="max-width: 600px;">
+            </div>
+            <p class="size-label">Horizontal layout • For headers and splash screens</p>
+        </div>
+
+        <!-- Different Backgrounds -->
+        <h2 style="margin: 40px 0 20px; color: #1e293b; text-align: center;">Logo on Different Backgrounds</h2>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Light Background</h2>
+                <div class="logo-container bg-light">
+                    <img src="assets/logo-icon.svg" alt="Logo on Light" style="width: 120px;">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Dark Background</h2>
+                <div class="logo-container bg-dark">
+                    <img src="assets/logo-icon.svg" alt="Logo on Dark" style="width: 120px;">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Colored Background</h2>
+                <div class="logo-container bg-colored">
+                    <img src="assets/logo-icon-mono.svg" alt="Logo on Color" style="width: 120px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Brand Colors -->
+        <div class="info-section">
+            <h2>Brand Colors</h2>
+            <div class="color-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0ea5e9;"></div>
+                    <div class="color-name">Sky Blue</div>
+                    <div class="color-hex">#0ea5e9</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0284c7;"></div>
+                    <div class="color-name">Sky Blue Dark</div>
+                    <div class="color-hex">#0284c7</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #f59e0b;"></div>
+                    <div class="color-name">Amber</div>
+                    <div class="color-hex">#f59e0b</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #d97706;"></div>
+                    <div class="color-name">Amber Dark</div>
+                    <div class="color-hex">#d97706</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #1e293b;"></div>
+                    <div class="color-name">Slate</div>
+                    <div class="color-hex">#1e293b</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #334155;"></div>
+                    <div class="color-name">Slate Light</div>
+                    <div class="color-hex">#334155</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Design Details -->
+        <div class="info-section">
+            <h2>Design Concept</h2>
+            <p><strong>Symbol:</strong> Location pin combined with a wrench</p>
+            <p><strong>Meaning:</strong> Represents field service, mobility, and technical work</p>
+            <p><strong>Style:</strong> Modern, geometric, tech-forward</p>
+            <p><strong>Typography:</strong> Inter (Bold 700 for logo, Medium 500 for tagline)</p>
+
+            <div style="margin-top: 20px;">
+                <span class="badge">Mobile-First</span>
+                <span class="badge">Scalable</span>
+                <span class="badge">Professional</span>
+                <span class="badge">WCAG AA Compliant</span>
+            </div>
+        </div>
+
+        <!-- Size Examples -->
+        <div class="info-section">
+            <h2>Scalability Test</h2>
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 20px;">
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 16px; height: 16px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">16px</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 32px; height: 32px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">32px</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 48px; height: 48px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">48px</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 64px; height: 64px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">64px</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 96px; height: 96px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">96px</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="assets/logo-icon-flat.svg" style="width: 128px; height: 128px;">
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">128px</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

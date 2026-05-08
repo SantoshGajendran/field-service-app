@@ -1,0 +1,62 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle with Gradient -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGradient)"/>
+
+  <!-- Gradient Definitions -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="accentGradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Shadow Filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main Icon Group -->
+  <g filter="url(#shadow)">
+    <!-- Location Pin Shape (White) -->
+    <path d="M256 96C206.144 96 166 136.144 166 186C166 256 256 416 256 416C256 416 346 256 346 186C346 136.144 305.856 96 256 96Z"
+          fill="white" opacity="0.95"/>
+
+    <!-- Inner Circle -->
+    <circle cx="256" cy="186" r="54" fill="#0284c7"/>
+
+    <!-- Wrench Icon (Amber Accent) -->
+    <g transform="translate(256, 186)">
+      <!-- Wrench Handle -->
+      <rect x="-6" y="-32" width="12" height="48" rx="6" fill="url(#accentGradient)"/>
+
+      <!-- Wrench Head -->
+      <path d="M-18 -32 L-18 -20 L-12 -20 L-12 -14 L-6 -14 L-6 -32 Z" fill="url(#accentGradient)"/>
+      <path d="M18 -32 L18 -20 L12 -20 L12 -14 L6 -14 L6 -32 Z" fill="url(#accentGradient)"/>
+
+      <!-- Wrench Opening -->
+      <rect x="-12" y="-32" width="24" height="4" fill="#0284c7" opacity="0.3"/>
+    </g>
+  </g>
+
+  <!-- Subtle Highlight -->
+  <circle cx="256" cy="180" r="200" fill="url(#highlight)" opacity="0.1"/>
+  <defs>
+    <radialGradient id="highlight">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

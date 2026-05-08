@@ -1,0 +1,44 @@
+<svg width="800" height="200" viewBox="0 0 800 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Definitions -->
+  <defs>
+    <linearGradient id="iconGradient" x1="0" y1="0" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="wrenchGradient" x1="0" y1="0" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon (Simplified for horizontal logo) -->
+  <g transform="translate(100, 100)">
+    <!-- Location Pin -->
+    <path d="M0 -60C-27.614 -60 -50 -37.614 -50 -10C-50 30 0 80 0 80C0 80 50 30 50 -10C50 -37.614 27.614 -60 0 -60Z"
+          fill="url(#iconGradient)"/>
+
+    <!-- Inner Circle -->
+    <circle cx="0" cy="-10" r="22" fill="white" opacity="0.95"/>
+
+    <!-- Wrench Icon -->
+    <g transform="translate(0, -10)">
+      <rect x="-3" y="-14" width="6" height="22" rx="3" fill="url(#wrenchGradient)"/>
+      <path d="M-8 -14 L-8 -8 L-5 -8 L-5 -5 L-3 -5 L-3 -14 Z" fill="url(#wrenchGradient)"/>
+      <path d="M8 -14 L8 -8 L5 -8 L5 -5 L3 -5 L3 -14 Z" fill="url(#wrenchGradient)"/>
+    </g>
+  </g>
+
+  <!-- Text: Saazvat -->
+  <text x="200" y="95" font-family="Inter, sans-serif" font-weight="700" font-size="56" fill="#1e293b" letter-spacing="-1">
+    Saazvat
+  </text>
+
+  <!-- Text: Field Service -->
+  <text x="200" y="130" font-family="Inter, sans-serif" font-weight="500" font-size="24" fill="#64748b" letter-spacing="1">
+    FIELD SERVICE
+  </text>
+
+  <!-- Accent Line -->
+  <rect x="200" y="145" width="80" height="3" rx="1.5" fill="url(#wrenchGradient)"/>
+</svg>

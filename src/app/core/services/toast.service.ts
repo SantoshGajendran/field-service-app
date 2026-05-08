@@ -8,47 +8,67 @@ export interface Toast {
   duration: number;
 }
 
+interface SyncFailureKey {
+  itemId: string;
+  entityType: string;
+  action: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ToastService {
   private toastsSubject = new BehaviorSubject<Toast[]>([]);
   public toasts$ = this.toastsSubject.asObservable();
-  private recentMessages = new Map<string, number>(); // message -> timestamp
+  private maxToasts = 3;
+  private globalDebounceMs = 1000;
+  private lastToastTime = new Map<string, number>();
+  private toastCooldownMs = 2000;
 
   show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration: number = 3000) {
-    // Deduplicate: check if same message was shown recently (within 2 seconds)
+    const currentToasts = this.toastsSubject.value;
     const messageKey = `${type}:${message}`;
     const now = Date.now();
-    const lastShown = this.recentMessages.get(messageKey);
 
-    if (lastShown && (now - lastShown) < 2000) {
-      console.log('Skipping duplicate toast:', message);
+    if (currentToasts.length >= this.maxToasts) {
+      const oldestToast = currentToasts[0];
+      this.remove(oldestToast.id);
+    }
+
+    const lastShown = this.lastToastTime.get(messageKey);
+    if (lastShown && (now - lastShown) < this.toastCooldownMs) {
       return;
     }
 
-    this.recentMessages.set(messageKey, now);
+    this.lastToastTime.set(messageKey, now);
 
     const id = crypto.randomUUID();
     const toast: Toast = { id, message, type, duration };
 
-    const currentToasts = this.toastsSubject.value;
-    this.toastsSubject.next([...currentToasts, toast]);
+    this.toastsSubject.next([...this.toastsSubject.value, toast]);
 
     setTimeout(() => {
       this.remove(id);
-      // Clean up old entries from recentMessages map
-      this.cleanupRecentMessages();
     }, duration);
   }
 
-  private cleanupRecentMessages() {
+  shouldShowSyncFailure(item: SyncFailureKey): boolean {
+    const key = `${item.itemId}:${item.entityType}:${item.action}`;
     const now = Date.now();
-    const threshold = 5000; // Keep entries for 5 seconds
+    const lastShown = this.lastToastTime.get(key);
 
-    for (const [key, timestamp] of this.recentMessages.entries()) {
-      if (now - timestamp > threshold) {
-        this.recentMessages.delete(key);
+    if (lastShown && (now - lastShown) < this.toastCooldownMs) {
+      return false;
+    }
+
+    this.lastToastTime.set(key, now);
+    return true;
+  }
+
+  clearSyncFailureTracking(itemId: string) {
+    for (const key of this.lastToastTime.keys()) {
+      if (key.startsWith(`${itemId}:`)) {
+        this.lastToastTime.delete(key);
       }
     }
   }

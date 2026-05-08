@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { NetworkService } from './network.service';
 import { SupabaseService } from './supabase.service';
 import { ToastService } from './toast.service';
@@ -19,12 +19,20 @@ export class SyncService {
   private pendingCountSubject = new BehaviorSubject<number>(0);
   public pendingCount$ = this.pendingCountSubject.asObservable();
 
+  private syncDebounceTimer: any = null;
+  private readonly SYNC_DEBOUNCE_MS = 3000;
+  private scheduledRetryTimer: any = null;
+  private lastSyncErrorTime = 0;
+  private readonly MIN_ERROR_INTERVAL_MS = 15000;
+  private currentSyncSessionId = 0;
+
   constructor(
     private networkService: NetworkService,
     private supabase: SupabaseService,
     private toastService: ToastService,
     private photoService: PhotoService,
-    private syncQueueRepo: SyncQueueRepository
+    private syncQueueRepo: SyncQueueRepository,
+    private ngZone: NgZone
   ) {
     this.initSyncListener();
     this.updatePendingCount();
@@ -33,9 +41,31 @@ export class SyncService {
   private initSyncListener() {
     this.networkSub = this.networkService.isOnline$.subscribe(isOnline => {
       if (isOnline && !this.isSyncing) {
-        this.drainSyncQueue();
+        this.scheduleSync();
       }
     });
+  }
+
+  private scheduleSync() {
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+    }
+    this.syncDebounceTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.drainSyncQueue();
+      });
+    }, this.SYNC_DEBOUNCE_MS);
+  }
+
+  private cancelScheduledSync() {
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+      this.syncDebounceTimer = null;
+    }
+    if (this.scheduledRetryTimer) {
+      clearTimeout(this.scheduledRetryTimer);
+      this.scheduledRetryTimer = null;
+    }
   }
 
   private async updatePendingCount() {
@@ -48,6 +78,10 @@ export class SyncService {
 
     this.isSyncing = true;
     this.syncingSubject.next(true);
+    this.cancelScheduledSync();
+
+    this.currentSyncSessionId = Date.now();
+    const syncSessionId = this.currentSyncSessionId;
 
     try {
       const queue = await this.syncQueueRepo.getAll();
@@ -60,22 +94,18 @@ export class SyncService {
       console.log(`Starting sync process for ${queue.length} items...`);
       let successCount = 0;
       let failCount = 0;
-      let permanentFailCount = 0;
+      let newPermanentFailures: SyncItem[] = [];
+      let transientErrors: { itemId: string; error: string; entityType: string }[] = [];
 
-      // FIFO order: Process items one by one
       for (const item of queue) {
-        // Skip items that are already marked as permanently failed
         if (item.status === 'FAILED') {
-          permanentFailCount++;
           continue;
         }
 
-        // Check if enough time has passed for retry (exponential backoff)
         if (item.retryCount > 0 && item.lastAttemptAt) {
-          const backoffMs = Math.min(1000 * Math.pow(2, item.retryCount), 60000); // Max 60s
+          const backoffMs = Math.min(1000 * Math.pow(2, item.retryCount), 60000);
           const timeSinceLastAttempt = Date.now() - new Date(item.lastAttemptAt).getTime();
           if (timeSinceLastAttempt < backoffMs) {
-            console.log(`Skipping item ${item.id} - backoff period not elapsed`);
             continue;
           }
         }
@@ -83,8 +113,8 @@ export class SyncService {
         try {
           item.lastAttemptAt = new Date().toISOString();
           await this.processSyncItem(item);
-          // If successful, remove from queue
           await this.syncQueueRepo.remove(item.id);
+          this.toastService.clearSyncFailureTracking(item.id);
           console.log(`Successfully synced item: ${item.id}`);
           successCount++;
           await this.updatePendingCount();
@@ -92,41 +122,76 @@ export class SyncService {
           console.error(`Failed to sync item: ${item.id}`, error);
           failCount++;
 
-          // Implement retry logic with exponential backoff
           item.retryCount = (item.retryCount || 0) + 1;
-          item.status = item.retryCount >= 5 ? 'FAILED' : 'PENDING';
           item.lastError = error instanceof Error ? error.message : String(error);
+
+          if (item.retryCount >= 5) {
+            item.status = 'FAILED';
+            newPermanentFailures.push(item);
+          } else {
+            transientErrors.push({
+              itemId: item.id,
+              error: item.lastError,
+              entityType: item.entityType
+            });
+          }
+
           await this.syncQueueRepo.update(item);
 
-          // Stop draining if we hit network errors during sync
           if (!this.networkService.currentStatus) {
             break;
           }
         }
+
+        if (this.currentSyncSessionId !== syncSessionId) {
+          console.log('Sync cancelled - new sync session started');
+          return;
+        }
       }
 
-      // Show summary toast only if there were actual sync attempts
-      if (successCount > 0) {
+      if (successCount > 0 && this.currentSyncSessionId === syncSessionId) {
         this.toastService.success(`Synced ${successCount} item(s) successfully`);
       }
-      if (failCount > 0) {
-        this.toastService.warning(`${failCount} item(s) failed to sync`);
+
+      if (newPermanentFailures.length > 0 && this.currentSyncSessionId === syncSessionId) {
+        const now = Date.now();
+        if (now - this.lastSyncErrorTime > this.MIN_ERROR_INTERVAL_MS) {
+          this.lastSyncErrorTime = now;
+          if (newPermanentFailures.length === 1) {
+            const failed = newPermanentFailures[0];
+            this.toastService.error(`${failed.entityType} sync failed after 5 retries. Please try again later.`, 6000);
+          } else {
+            this.toastService.error(`${newPermanentFailures.length} item(s) failed to sync after multiple retries. Will retry later.`, 6000);
+          }
+        }
       }
-      if (permanentFailCount > 0) {
-        console.log(`${permanentFailCount} item(s) permanently failed - manual intervention required`);
+
+      if (transientErrors.length > 0 && this.currentSyncSessionId === syncSessionId) {
+        console.log(`Sync completed with ${transientErrors.length} transient failures - will retry automatically`);
+      }
+
+      const remaining = await this.syncQueueRepo.getAll();
+      const pendingItems = remaining.filter(item => item.status === 'PENDING');
+      if (pendingItems.length > 0 && this.networkService.currentStatus && this.currentSyncSessionId === syncSessionId) {
+        this.scheduledRetryTimer = setTimeout(() => {
+          this.ngZone.run(() => {
+            if (this.currentSyncSessionId === syncSessionId) {
+              this.drainSyncQueue();
+            }
+          });
+        }, 10000);
       }
     } catch (err) {
       console.error('Error while draining sync queue', err);
-      this.toastService.error('Sync failed. Will retry when online.');
+      const now = Date.now();
+      if (now - this.lastSyncErrorTime > this.MIN_ERROR_INTERVAL_MS) {
+        this.lastSyncErrorTime = now;
+        this.toastService.error('Sync failed. Will retry when online.');
+      }
     } finally {
-      this.isSyncing = false;
-      this.syncingSubject.next(false);
-
-      // If queue still has pending items and we are online, trigger another drain
-      const remaining = await this.syncQueueRepo.getAll();
-      const pendingItems = remaining.filter(item => item.status === 'PENDING');
-      if (pendingItems.length > 0 && this.networkService.currentStatus) {
-        setTimeout(() => this.drainSyncQueue(), 2000);
+      if (this.currentSyncSessionId === syncSessionId) {
+        this.isSyncing = false;
+        this.syncingSubject.next(false);
       }
     }
   }
@@ -147,7 +212,6 @@ export class SyncService {
   private async syncWorkOrder(item: SyncItem): Promise<void> {
     const workOrder = item.payload;
 
-    // Upload any local photos first
     if (workOrder.photos && workOrder.photos.length > 0) {
       const uploadedPhotos = [];
       for (const photo of workOrder.photos) {
@@ -157,7 +221,6 @@ export class SyncService {
             uploadedPhotos.push(uploadedPhoto);
           } catch (error) {
             console.error('Failed to upload local photo:', error);
-            // If photo upload fails, throw error to retry the entire sync item
             throw new Error(`Photo upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
         } else {
@@ -167,7 +230,6 @@ export class SyncService {
       workOrder.photos = uploadedPhotos;
     }
 
-    // Upload local signature if exists
     if (workOrder.signature_url && workOrder.signature_url.startsWith('data:')) {
       try {
         const signatureData = await this.photoService.uploadSignature(
@@ -177,20 +239,26 @@ export class SyncService {
         workOrder.signature_url = signatureData.url;
       } catch (error) {
         console.error('Failed to upload signature:', error);
-        // If signature upload fails, throw error to retry the entire sync item
         throw new Error(`Signature upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
     switch (item.action) {
       case 'CREATE':
-        await this.supabase.createWorkOrder(workOrder);
+        try {
+          await this.supabase.createWorkOrder(workOrder);
+        } catch (error) {
+          throw new Error(`Failed to create work order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       case 'UPDATE':
-        await this.supabase.updateWorkOrder(workOrder.id, workOrder);
+        try {
+          await this.supabase.updateWorkOrder(workOrder.id, workOrder);
+        } catch (error) {
+          throw new Error(`Failed to update work order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       case 'DELETE':
-        // Implement delete if needed
         throw new Error('DELETE not implemented for work orders');
       default:
         throw new Error(`Unknown action: ${item.action}`);
@@ -202,28 +270,30 @@ export class SyncService {
 
     switch (item.action) {
       case 'UPDATE':
-        await this.supabase.updateChecklist(checklist.id, checklist.items);
+        try {
+          await this.supabase.updateChecklist(checklist.id, checklist.items);
+        } catch (error) {
+          throw new Error(`Failed to update checklist: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       default:
         throw new Error(`Unknown action: ${item.action}`);
     }
   }
 
-  // Called by other services (Outbox Pattern)
   public async addToSyncQueue(item: SyncItem): Promise<void> {
     await this.syncQueueRepo.add(item);
     await this.updatePendingCount();
 
-    // If online, try to sync immediately
     if (this.networkService.currentStatus && !this.isSyncing) {
-      this.drainSyncQueue();
+      this.scheduleSync();
     }
   }
 
-  // Manual sync trigger
   public async triggerSync(): Promise<void> {
     if (this.networkService.currentStatus) {
-      await this.drainSyncQueue();
+      this.cancelScheduledSync();
+      this.scheduleSync();
     } else {
       this.toastService.warning('Cannot sync while offline');
     }

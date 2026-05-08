@@ -369,6 +369,15 @@ import { HapticService } from '../../../../core/services/haptic.service';
           transform: translateX(4px);
         }
       }
+
+      &:focus-visible {
+        outline: 2px solid var(--color-accent-primary);
+        outline-offset: 2px;
+      }
+
+      &:active {
+        transform: translateX(0) scale(0.98);
+      }
     }
 
     @keyframes fadeIn {

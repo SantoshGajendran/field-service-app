@@ -1,5 +1,5 @@
 // theme.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, APP_INITIALIZER } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 export type Theme = 'light' | 'dark';
@@ -14,22 +14,32 @@ export class ThemeService {
   public theme$ = this.themeSubject.asObservable();
 
   constructor() {
-    this.applyTheme(this.themeSubject.value);
+    const initialTheme = this.getInitialTheme();
+    this.themeSubject.next(initialTheme);
+    this.applyTheme(initialTheme);
   }
 
   private getInitialTheme(): Theme {
-    const savedTheme = localStorage.getItem(this.THEME_KEY) as Theme;
-    return savedTheme || 'dark';
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      const savedTheme = localStorage.getItem(this.THEME_KEY) as Theme;
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
+    }
+    return 'dark';
   }
 
   public toggleTheme(): void {
-    const newTheme: Theme = this.themeSubject.value === 'dark' ? 'light' : 'dark';
+    const currentTheme = this.themeSubject.value;
+    const newTheme: Theme = currentTheme === 'dark' ? 'light' : 'dark';
     this.setTheme(newTheme);
   }
 
   public setTheme(theme: Theme): void {
     this.themeSubject.next(theme);
-    localStorage.setItem(this.THEME_KEY, theme);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.THEME_KEY, theme);
+    }
     this.applyTheme(theme);
   }
 
@@ -38,6 +48,8 @@ export class ThemeService {
   }
 
   private applyTheme(theme: Theme): void {
-    document.documentElement.setAttribute('data-theme', theme);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
   }
 }

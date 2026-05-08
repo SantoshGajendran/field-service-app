@@ -306,6 +306,11 @@ import { BehaviorSubject, combineLatest, Subject } from 'rxjs';
         transform: translateY(-2px);
       }
 
+      &:focus-visible {
+        outline: 2px solid var(--color-accent-primary);
+        outline-offset: 2px;
+      }
+
       &.active {
         background: rgba(14, 165, 233, 0.2);
         color: var(--color-accent-primary);

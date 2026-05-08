@@ -638,6 +638,24 @@ import { take } from 'rxjs';
     .photo-actions {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    @media (max-width: 480px) {
+      .photo-actions {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .photo-btn {
+        flex: 1;
+        min-width: 120px;
+        max-width: 160px;
+        justify-content: center;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+      }
     }
 
     .photo-btn,

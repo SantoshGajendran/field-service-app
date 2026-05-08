@@ -230,6 +230,7 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
         min-width: 48px;
         border-radius: var(--radius-md);
         position: relative;
+        cursor: pointer;
 
         .icon {
           width: 24px;
@@ -274,6 +275,11 @@ import { SyncStatusComponent } from '../sync-status/sync-status.component';
         &:hover {
           color: var(--color-accent-primary);
           transform: translateY(-2px);
+          background: rgba(14, 165, 233, 0.08);
+        }
+
+        &:active {
+          transform: translateY(0) scale(0.98);
         }
 
         &.active {

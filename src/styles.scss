@@ -89,20 +89,20 @@
   --color-status-offline: #64748b;
   --color-status-info: #2563eb;
 
-  /* Glassmorphism - Light */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-bg-light: rgba(248, 250, 252, 0.8);
-  --glass-bg-lighter: rgba(241, 245, 249, 0.6);
-  --glass-border: rgba(148, 163, 184, 0.3);
+  /* Glassmorphism - Light - Enhanced visibility */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-light: rgba(248, 250, 252, 0.9);
+  --glass-bg-lighter: rgba(241, 245, 249, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.25);
   --glass-border-light: rgba(148, 163, 184, 0.4);
-  --glass-blur: blur(16px);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
-  --glass-shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.12);
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  --glass-shadow-hover: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 
   /* Gradients - Light */
   --gradient-primary: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);
   --gradient-secondary: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
-  --gradient-success: linear-gradient(135deg, #059669 0%, #047857 100%);
+  --gradient-success: linear-gradient(135deg, #059669 0%, #047857 100());
   --gradient-bg: radial-gradient(ellipse at top, #e0f2fe 0%, #f8fafc 50%, #ffffff 100%);
 
   /* Neon Glow - Light (softer) */
@@ -128,10 +128,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Animated Background */
@@ -167,6 +171,7 @@ body::before {
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .glass-panel::before {
@@ -190,6 +195,10 @@ body::before {
   left: 100%;
 }
 
+.glass-panel:active {
+  transform: translateY(0) scale(0.99);
+}
+
 /* Glass Variants */
 .glass-panel-light {
   background: var(--glass-bg-light);
@@ -199,8 +208,8 @@ body::before {
   background: var(--glass-bg-lighter);
 }
 
-/* Touch targets */
-button, a {
+/* Touch targets & Interactive Elements */
+button, a, .interactive, [role="button"], .nav-item, .action-card, .filter-btn {
   min-height: 44px;
   min-width: 44px;
   cursor: pointer;
@@ -208,8 +217,17 @@ button, a {
   transition: all var(--transition-base);
 }
 
-button:active, a:active {
-  transform: scale(0.95);
+button:active, a:active, .interactive:active, [role="button"]:active {
+  transform: scale(0.97);
+}
+
+/* Enhanced button focus states */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Utilities */
