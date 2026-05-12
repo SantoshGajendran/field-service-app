@@ -203,4 +203,214 @@ export class SupabaseService {
       .from(bucket)
       .remove([path]);
   }
+
+  // Inventory - Parts
+  getParts(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('parts')
+        .select('*')
+        .order('name', { ascending: true })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  async createPart(part: any) {
+    const { data, error } = await this.supabase
+      .from('parts')
+      .insert(part)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updatePart(id: string, updates: any) {
+    const { data, error } = await this.supabase
+      .from('parts')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deletePart(id: string) {
+    const { error } = await this.supabase
+      .from('parts')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // Inventory - Stock Locations
+  getStockLocations(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('stock_locations')
+        .select('*')
+        .eq('is_active', true)
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  // Inventory - Stock Levels
+  getStockLevels(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('stock_levels')
+        .select('*')
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  async updateStockLevel(partId: string, locationId: string, quantity: number) {
+    const { data, error } = await this.supabase
+      .from('stock_levels')
+      .upsert({
+        part_id: partId,
+        location_id: locationId,
+        quantity: quantity,
+        available_quantity: quantity,
+        last_updated: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Checkout Sessions
+  getCheckoutSessions(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('checkout_sessions')
+        .select('*')
+        .order('created_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  async createCheckoutSession(session: any) {
+    const { data, error } = await this.supabase
+      .from('checkout_sessions')
+      .insert(session)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateCheckoutSession(id: string, updates: any) {
+    const { data, error } = await this.supabase
+      .from('checkout_sessions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Part Usage
+  getPartUsage(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('part_usage')
+        .select('*')
+        .order('timestamp', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  async createPartUsage(usage: any) {
+    const { data, error } = await this.supabase
+      .from('part_usage')
+      .insert(usage)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Serialized Parts
+  getSerializedParts(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('serialized_parts')
+        .select('*')
+        .order('created_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
+
+  async createSerializedPart(part: any) {
+    const { data, error } = await this.supabase
+      .from('serialized_parts')
+      .insert(part)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async updateSerializedPart(id: string, updates: any) {
+    const { data, error } = await this.supabase
+      .from('serialized_parts')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // RMA Requests
+  getRmaRequests(): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('rma_requests')
+        .select('*')
+        .order('request_date', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return data || [];
+      })
+    );
+  }
 }
