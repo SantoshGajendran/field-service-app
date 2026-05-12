@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { WorkOrderListComponent } from './features/work-orders/containers/work-order-list/work-order-list.component';
 import { WorkOrderDetailComponent } from './features/work-orders/containers/work-order-detail/work-order-detail.component';
-import { InventoryComponent } from './features/inventory/inventory.component';
 import { ProfileComponent } from './features/profile/profile.component';
 import { LoginComponent } from './features/login/login.component';
 import { AdminComponent } from './features/admin/admin.component';
@@ -33,7 +32,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory',
-    component: InventoryComponent,
+    loadChildren: () => import('./features/inventory/inventory.routes').then(m => m.inventoryRoutes),
     canActivate: [authGuard]
   },
   {
