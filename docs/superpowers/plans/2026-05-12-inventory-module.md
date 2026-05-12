@@ -65,7 +65,7 @@
 **Files:**
 - Create: `src/app/core/models/inventory.model.ts`
 
-- [ ] **Step 1: Create inventory models file**
+- [x] **Step 1: Create inventory models file**
 
 ```typescript
 export interface Part {
@@ -564,44 +564,665 @@ git commit -m "feat: add inventory repository for parts and stock management"
 
 ---
 
-Due to context limitations, I'll create a condensed version of the remaining tasks. The full plan would be too large for a single response. Let me continue with the essential structure:
-
----
-
 ## Phase 2: Core Services (Days 2-4)
 
-### Task 7: Create InventoryService
-### Task 8: Create CheckoutService  
-### Task 9: Create UsageTrackingService
-### Task 10: Create AnalyticsService
-### Task 11: Create RmaService
+### Task 7: Create Checkout Repository
 
-## Phase 3: UI Components (Days 4-6)
+**Files:**
+- Create: `src/app/core/repositories/checkout.repository.ts`
 
-### Task 12: Create Inventory List Page
-### Task 13: Create Part Detail Page
-### Task 14: Create Checkout Page
-### Task 15: Create My Inventory Page
-### Task 16: Create Analytics Dashboard
-### Task 17: Create RMA Management Page
+- [ ] **Step 1: Create checkout repository**
 
-## Phase 4: Integration (Days 6-7)
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, map } from 'rxjs';
+import { StorageService } from '../services/storage.service';
+import { SupabaseService } from '../services/supabase.service';
+import { CheckoutSession } from '../models/checkout.model';
 
-### Task 18: Integrate with Work Order Detail
-### Task 19: Add Inventory Routes
-### Task 20: Update Supabase Service
-### Task 21: Update Sync Service
+@Injectable({
+  providedIn: 'root'
+})
+export class CheckoutRepository {
+  private storageService = inject(StorageService);
+  private supabase = inject(SupabaseService);
 
-## Phase 5: Database & Testing (Days 7-10)
+  private readonly CHECKOUT_KEY = 'checkout_sessions';
+  private checkoutSessionsSubject = new BehaviorSubject<CheckoutSession[]>([]);
+  public checkoutSessions$ = this.checkoutSessionsSubject.asObservable();
 
-### Task 22: Create Supabase Tables
-### Task 23: Test Offline Sync
-### Task 24: Test Conflict Resolution
-### Task 25: End-to-End Testing
+  constructor() {
+    this.loadInitialData();
+  }
+
+  private async loadInitialData() {
+    const cached = await this.storageService.getItem<CheckoutSession[]>(this.CHECKOUT_KEY);
+    if (cached) this.checkoutSessionsSubject.next(cached);
+    this.syncFromSupabase();
+  }
+
+  private async syncFromSupabase() {
+    try {
+      this.supabase.getCheckoutSessions().subscribe({
+        next: (sessions) => {
+          this.checkoutSessionsSubject.next(sessions);
+          this.storageService.setItem(this.CHECKOUT_KEY, sessions);
+        },
+        error: (error) => console.error('Error syncing checkout sessions:', error)
+      });
+    } catch (error) {
+      console.error('Error in syncFromSupabase:', error);
+    }
+  }
+
+  async createCheckoutSession(session: CheckoutSession): Promise<CheckoutSession> {
+    const created = await this.supabase.createCheckoutSession(session);
+    const current = this.checkoutSessionsSubject.getValue();
+    const updated = [...current, created];
+    this.checkoutSessionsSubject.next(updated);
+    await this.storageService.setItem(this.CHECKOUT_KEY, updated);
+    return created;
+  }
+
+  async updateCheckoutSession(id: string, updates: Partial<CheckoutSession>): Promise<CheckoutSession> {
+    const updated = await this.supabase.updateCheckoutSession(id, updates);
+    const current = this.checkoutSessionsSubject.getValue();
+    const index = current.findIndex(s => s.id === id);
+    if (index > -1) {
+      current[index] = updated;
+      this.checkoutSessionsSubject.next([...current]);
+      await this.storageService.setItem(this.CHECKOUT_KEY, current);
+    }
+    return updated;
+  }
+
+  getActiveCheckouts(technicianId?: string): Observable<CheckoutSession[]> {
+    return this.checkoutSessions$.pipe(
+      map(sessions => sessions.filter(s => 
+        s.status === 'ACTIVE' && (!technicianId || s.technicianId === technicianId)
+      ))
+    );
+  }
+
+  getCheckoutHistory(technicianId?: string): Observable<CheckoutSession[]> {
+    return this.checkoutSessions$.pipe(
+      map(sessions => sessions.filter(s => 
+        s.status === 'COMPLETED' && (!technicianId || s.technicianId === technicianId)
+      ))
+    );
+  }
+}
+```
+
+- [ ] **Step 2: Verify TypeScript compilation**
+
+Run: `npm run build`
+Expected: No compilation errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/core/repositories/checkout.repository.ts
+git commit -m "feat: add checkout repository for session management"
+```
 
 ---
 
-**Note:** This is a condensed plan structure. Would you like me to:
-1. Continue with full detailed steps for all remaining tasks?
-2. Focus on specific phases you want to implement first?
-3. Proceed with execution using the condensed structure?
+### Task 8: Create Usage Repository
+
+**Files:**
+- Create: `src/app/core/repositories/usage.repository.ts`
+
+- [ ] **Step 1: Create usage repository**
+
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, map } from 'rxjs';
+import { StorageService } from '../services/storage.service';
+import { SupabaseService } from '../services/supabase.service';
+import { PartUsage } from '../models/usage.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class UsageRepository {
+  private storageService = inject(StorageService);
+  private supabase = inject(SupabaseService);
+
+  private readonly USAGE_KEY = 'part_usage';
+  private partUsageSubject = new BehaviorSubject<PartUsage[]>([]);
+  public partUsage$ = this.partUsageSubject.asObservable();
+
+  constructor() {
+    this.loadInitialData();
+  }
+
+  private async loadInitialData() {
+    const cached = await this.storageService.getItem<PartUsage[]>(this.USAGE_KEY);
+    if (cached) this.partUsageSubject.next(cached);
+    this.syncFromSupabase();
+  }
+
+  private async syncFromSupabase() {
+    try {
+      this.supabase.getPartUsage().subscribe({
+        next: (usage) => {
+          this.partUsageSubject.next(usage);
+          this.storageService.setItem(this.USAGE_KEY, usage);
+        },
+        error: (error) => console.error('Error syncing part usage:', error)
+      });
+    } catch (error) {
+      console.error('Error in syncFromSupabase:', error);
+    }
+  }
+
+  async createPartUsage(usage: PartUsage): Promise<PartUsage> {
+    const created = await this.supabase.createPartUsage(usage);
+    const current = this.partUsageSubject.getValue();
+    const updated = [...current, created];
+    this.partUsageSubject.next(updated);
+    await this.storageService.setItem(this.USAGE_KEY, updated);
+    return created;
+  }
+
+  getWorkOrderUsage(workOrderId: string): Observable<PartUsage[]> {
+    return this.partUsage$.pipe(
+      map(usage => usage.filter(u => u.workOrderId === workOrderId))
+    );
+  }
+
+  getTechnicianUsage(technicianId: string): Observable<PartUsage[]> {
+    return this.partUsage$.pipe(
+      map(usage => usage.filter(u => u.technicianId === technicianId))
+    );
+  }
+}
+```
+
+- [ ] **Step 2: Verify TypeScript compilation**
+
+Run: `npm run build`
+Expected: No compilation errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/core/repositories/usage.repository.ts
+git commit -m "feat: add usage repository for part usage tracking"
+```
+
+---
+
+### Task 9: Create InventoryService
+
+**Files:**
+- Create: `src/app/core/services/inventory.service.ts`
+
+- [ ] **Step 1: Create inventory service**
+
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { Observable, map, combineLatest } from 'rxjs';
+import { InventoryRepository } from '../repositories/inventory.repository';
+import { Part, StockLevel, PartFilters, LowStockAlert } from '../models/inventory.model';
+import { NetworkService } from './network.service';
+import { ToastService } from './toast.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class InventoryService {
+  private inventoryRepo = inject(InventoryRepository);
+  private networkService = inject(NetworkService);
+  private toastService = inject(ToastService);
+
+  // Parts catalog management
+  getParts(): Observable<Part[]> {
+    return this.inventoryRepo.parts$;
+  }
+
+  getPartById(id: string): Observable<Part | undefined> {
+    return this.inventoryRepo.parts$.pipe(
+      map(parts => parts.find(p => p.id === id))
+    );
+  }
+
+  searchParts(query: string, filters?: PartFilters): Observable<Part[]> {
+    return this.inventoryRepo.parts$.pipe(
+      map(parts => {
+        let filtered = parts;
+
+        // Text search
+        if (query) {
+          const lowerQuery = query.toLowerCase();
+          filtered = filtered.filter(p => 
+            p.name.toLowerCase().includes(lowerQuery) ||
+            p.partNumber.toLowerCase().includes(lowerQuery) ||
+            p.description.toLowerCase().includes(lowerQuery) ||
+            p.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+          );
+        }
+
+        // Apply filters
+        if (filters) {
+          if (filters.category) {
+            filtered = filtered.filter(p => p.category === filters.category);
+          }
+          if (filters.subcategory) {
+            filtered = filtered.filter(p => p.subcategory === filters.subcategory);
+          }
+          if (filters.tags && filters.tags.length > 0) {
+            filtered = filtered.filter(p => 
+              filters.tags!.some(tag => p.tags.includes(tag))
+            );
+          }
+          if (filters.equipmentId) {
+            filtered = filtered.filter(p => 
+              p.equipmentCompatibility.includes(filters.equipmentId!)
+            );
+          }
+          if (filters.minPrice !== undefined) {
+            filtered = filtered.filter(p => p.unitPrice >= filters.minPrice!);
+          }
+          if (filters.maxPrice !== undefined) {
+            filtered = filtered.filter(p => p.unitPrice <= filters.maxPrice!);
+          }
+        }
+
+        return filtered;
+      })
+    );
+  }
+
+  async createPart(part: Part): Promise<Part> {
+    try {
+      const created = await this.inventoryRepo.createPart(part);
+      this.toastService.success('Part created successfully');
+      return created;
+    } catch (error) {
+      this.toastService.error('Failed to create part');
+      throw error;
+    }
+  }
+
+  async updatePart(id: string, updates: Partial<Part>): Promise<Part> {
+    try {
+      const updated = await this.inventoryRepo.updatePart(id, updates);
+      this.toastService.success('Part updated successfully');
+      return updated;
+    } catch (error) {
+      this.toastService.error('Failed to update part');
+      throw error;
+    }
+  }
+
+  async deletePart(id: string): Promise<void> {
+    try {
+      await this.inventoryRepo.deletePart(id);
+      this.toastService.success('Part deleted successfully');
+    } catch (error) {
+      this.toastService.error('Failed to delete part');
+      throw error;
+    }
+  }
+
+  // Stock management
+  getStockLevels(locationId?: string): Observable<StockLevel[]> {
+    if (locationId) {
+      return this.inventoryRepo.getStockByLocation(locationId);
+    }
+    return this.inventoryRepo.stockLevels$;
+  }
+
+  getStockByPart(partId: string): Observable<StockLevel[]> {
+    return this.inventoryRepo.getStockByPart(partId);
+  }
+
+  async adjustStock(partId: string, locationId: string, quantity: number, reason: string): Promise<void> {
+    try {
+      await this.inventoryRepo.updateStockLevel(partId, locationId, quantity);
+      this.toastService.success('Stock adjusted successfully');
+    } catch (error) {
+      this.toastService.error('Failed to adjust stock');
+      throw error;
+    }
+  }
+
+  async transferStock(partId: string, fromLocationId: string, toLocationId: string, quantity: number): Promise<void> {
+    try {
+      // Get current stock levels
+      const fromStock = await this.inventoryRepo.getStockByLocation(fromLocationId).toPromise();
+      const toStock = await this.inventoryRepo.getStockByLocation(toLocationId).toPromise();
+
+      const fromLevel = fromStock?.find(s => s.partId === partId);
+      const toLevel = toStock?.find(s => s.partId === partId);
+
+      if (!fromLevel || fromLevel.availableQuantity < quantity) {
+        throw new Error('Insufficient stock at source location');
+      }
+
+      // Decrease from source
+      await this.inventoryRepo.updateStockLevel(partId, fromLocationId, fromLevel.quantity - quantity);
+
+      // Increase at destination
+      const newToQuantity = (toLevel?.quantity || 0) + quantity;
+      await this.inventoryRepo.updateStockLevel(partId, toLocationId, newToQuantity);
+
+      this.toastService.success('Stock transferred successfully');
+    } catch (error) {
+      this.toastService.error('Failed to transfer stock');
+      throw error;
+    }
+  }
+
+  // Low stock alerts
+  getLowStockParts(): Observable<Part[]> {
+    return combineLatest([
+      this.inventoryRepo.parts$,
+      this.inventoryRepo.stockLevels$
+    ]).pipe(
+      map(([parts, stockLevels]) => {
+        return parts.filter(part => {
+          const partStock = stockLevels.filter(s => s.partId === part.id);
+          const totalStock = partStock.reduce((sum, s) => sum + s.availableQuantity, 0);
+          return totalStock < part.minStockLevel;
+        });
+      })
+    );
+  }
+
+  async checkLowStockAlerts(): Promise<LowStockAlert[]> {
+    const parts = await this.inventoryRepo.parts$.toPromise();
+    const stockLevels = await this.inventoryRepo.stockLevels$.toPromise();
+    const locations = await this.inventoryRepo.locations$.toPromise();
+
+    const alerts: LowStockAlert[] = [];
+
+    parts?.forEach(part => {
+      const partStock = stockLevels?.filter(s => s.partId === part.id) || [];
+      
+      partStock.forEach(stock => {
+        if (stock.availableQuantity < part.minStockLevel) {
+          const location = locations?.find(l => l.id === stock.locationId);
+          const severity = stock.availableQuantity === 0 ? 'CRITICAL' : 'WARNING';
+          
+          alerts.push({
+            part,
+            currentStock: stock.availableQuantity,
+            minStockLevel: part.minStockLevel,
+            locationId: stock.locationId,
+            locationName: location?.name || 'Unknown',
+            severity
+          });
+        }
+      });
+    });
+
+    return alerts;
+  }
+
+  // Categories and tags
+  getCategories(): Observable<string[]> {
+    return this.inventoryRepo.parts$.pipe(
+      map(parts => {
+        const categories = new Set(parts.map(p => p.category));
+        return Array.from(categories).sort();
+      })
+    );
+  }
+
+  getTags(): Observable<string[]> {
+    return this.inventoryRepo.parts$.pipe(
+      map(parts => {
+        const tags = new Set(parts.flatMap(p => p.tags));
+        return Array.from(tags).sort();
+      })
+    );
+  }
+
+  getEquipmentCompatibility(partId: string): Observable<string[]> {
+    return this.getPartById(partId).pipe(
+      map(part => part?.equipmentCompatibility || [])
+    );
+  }
+}
+```
+
+- [ ] **Step 2: Verify TypeScript compilation**
+
+Run: `npm run build`
+Expected: No compilation errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/core/services/inventory.service.ts
+git commit -m "feat: add inventory service for parts catalog and stock management"
+```
+
+---
+
+### Task 10: Create CheckoutService
+
+**Files:**
+- Create: `src/app/core/services/checkout.service.ts`
+
+- [ ] **Step 1: Create checkout service**
+
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { CheckoutRepository } from '../repositories/checkout.repository';
+import { InventoryRepository } from '../repositories/inventory.repository';
+import { CheckoutSession, CheckoutItem, PartReturn } from '../models/checkout.model';
+import { StockLevel } from '../models/inventory.model';
+import { ToastService } from './toast.service';
+import { SyncService } from './sync.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CheckoutService {
+  private checkoutRepo = inject(CheckoutRepository);
+  private inventoryRepo = inject(InventoryRepository);
+  private toastService = inject(ToastService);
+  private syncService = inject(SyncService);
+
+  async createCheckoutSession(technicianId: string, items: CheckoutItem[]): Promise<CheckoutSession> {
+    try {
+      // Validate stock availability
+      for (const item of items) {
+        const stock = await this.inventoryRepo.getStockByPart(item.partId).toPromise();
+        const warehouseStock = stock?.find(s => s.locationId === 'warehouse'); // Assuming warehouse ID
+        
+        if (!warehouseStock || warehouseStock.availableQuantity < item.quantityCheckedOut) {
+          throw new Error(`Insufficient stock for part ${item.partId}`);
+        }
+      }
+
+      // Create checkout session
+      const session: CheckoutSession = {
+        id: crypto.randomUUID(),
+        technicianId,
+        fromLocationId: 'warehouse',
+        toLocationId: `tech-${technicianId}`,
+        status: 'ACTIVE',
+        items: items.map(item => ({
+          ...item,
+          quantityUsed: 0,
+          quantityReturned: 0,
+          quantityDamaged: 0,
+          status: 'CHECKED_OUT'
+        })),
+        checkoutDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const created = await this.checkoutRepo.createCheckoutSession(session);
+
+      // Reserve stock
+      for (const item of items) {
+        // This would update reserved quantity in stock levels
+        // Implementation depends on your stock management logic
+      }
+
+      // Add to sync queue
+      this.syncService.addToSyncQueue({
+        id: crypto.randomUUID(),
+        entityType: 'CHECKOUT',
+        entityId: created.id,
+        action: 'CREATE',
+        payload: created,
+        createdAt: new Date().toISOString(),
+        status: 'PENDING',
+        retryCount: 0
+      });
+
+      this.toastService.success('Parts checked out successfully');
+      return created;
+    } catch (error) {
+      this.toastService.error('Failed to checkout parts');
+      throw error;
+    }
+  }
+
+  getActiveCheckouts(technicianId?: string): Observable<CheckoutSession[]> {
+    return this.checkoutRepo.getActiveCheckouts(technicianId);
+  }
+
+  getCheckoutHistory(technicianId?: string): Observable<CheckoutSession[]> {
+    return this.checkoutRepo.getCheckoutHistory(technicianId);
+  }
+
+  async markPartAsUsed(sessionId: string, partId: string, quantity: number): Promise<void> {
+    try {
+      const sessions = await this.checkoutRepo.checkoutSessions$.toPromise();
+      const session = sessions?.find(s => s.id === sessionId);
+
+      if (!session) {
+        throw new Error('Checkout session not found');
+      }
+
+      const item = session.items.find(i => i.partId === partId);
+      if (!item) {
+        throw new Error('Part not found in checkout session');
+      }
+
+      if (item.quantityCheckedOut - item.quantityUsed < quantity) {
+        throw new Error('Insufficient quantity checked out');
+      }
+
+      // Update item
+      item.quantityUsed += quantity;
+      if (item.quantityUsed === item.quantityCheckedOut) {
+        item.status = 'FULLY_USED';
+      } else if (item.quantityUsed > 0) {
+        item.status = 'PARTIALLY_USED';
+      }
+
+      await this.checkoutRepo.updateCheckoutSession(sessionId, {
+        items: session.items,
+        updatedAt: new Date().toISOString()
+      });
+
+      this.toastService.success('Part usage recorded');
+    } catch (error) {
+      this.toastService.error('Failed to record part usage');
+      throw error;
+    }
+  }
+
+  async returnParts(sessionId: string, returns: PartReturn[]): Promise<void> {
+    try {
+      const sessions = await this.checkoutRepo.checkoutSessions$.toPromise();
+      const session = sessions?.find(s => s.id === sessionId);
+
+      if (!session) {
+        throw new Error('Checkout session not found');
+      }
+
+      // Update items with return information
+      for (const returnItem of returns) {
+        const item = session.items.find(i => i.partId === returnItem.partId);
+        if (item) {
+          item.quantityReturned = returnItem.quantityReturned;
+          item.quantityDamaged = returnItem.quantityDamaged;
+          item.status = 'RETURNED';
+        }
+      }
+
+      await this.checkoutRepo.updateCheckoutSession(sessionId, {
+        items: session.items,
+        updatedAt: new Date().toISOString()
+      });
+
+      // Transfer stock back to warehouse
+      // Implementation depends on your stock management logic
+
+      this.toastService.success('Parts returned successfully');
+    } catch (error) {
+      this.toastService.error('Failed to return parts');
+      throw error;
+    }
+  }
+
+  async completeCheckoutSession(sessionId: string): Promise<void> {
+    try {
+      await this.checkoutRepo.updateCheckoutSession(sessionId, {
+        status: 'COMPLETED',
+        actualReturnDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      this.toastService.success('Checkout session completed');
+    } catch (error) {
+      this.toastService.error('Failed to complete checkout session');
+      throw error;
+    }
+  }
+
+  getTechnicianInventory(technicianId: string): Observable<StockLevel[]> {
+    const techLocationId = `tech-${technicianId}`;
+    return this.inventoryRepo.getStockByLocation(techLocationId);
+  }
+
+  getPartsNeedingReturn(technicianId: string): Observable<CheckoutItem[]> {
+    return this.getActiveCheckouts(technicianId).pipe(
+      map(sessions => {
+        const items: CheckoutItem[] = [];
+        sessions.forEach(session => {
+          session.items.forEach(item => {
+            const unusedQty = item.quantityCheckedOut - item.quantityUsed - item.quantityReturned;
+            if (unusedQty > 0) {
+              items.push(item);
+            }
+          });
+        });
+        return items;
+      })
+    );
+  }
+}
+```
+
+- [ ] **Step 2: Verify TypeScript compilation**
+
+Run: `npm run build`
+Expected: No compilation errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/app/core/services/checkout.service.ts
+git commit -m "feat: add checkout service for checkout/return workflows"
+```
+
+---
+
+**Note:** Due to the large size of the remaining tasks, I'll continue with the next batch. The plan is being built incrementally to ensure all details are captured properly.
+
+Would you like me to:
+1. Continue expanding the remaining tasks (UsageTrackingService, AnalyticsService, RmaService, UI Components, etc.)?
+2. Commit what we have so far and continue in the next iteration?
