@@ -11,6 +11,10 @@ export class SupabaseService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
+  get client() {
+    return this.supabase;
+  }
+
   constructor() {
     this.supabase = createClient(
       environment.supabase.url,

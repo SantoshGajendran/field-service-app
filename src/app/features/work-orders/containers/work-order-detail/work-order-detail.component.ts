@@ -16,11 +16,12 @@ import { SignaturePadComponent } from '../../../../shared/components/signature-p
 import { LocationHistoryComponent } from '../../../../shared/components/location-history/location-history.component';
 import { MapViewComponent, MapLocation } from '../../../../shared/components/map-view/map-view.component';
 import { take } from 'rxjs';
+import { PartUsageTrackerComponent } from '../../../inventory/components/part-usage-tracker/part-usage-tracker.component';
 
 @Component({
   selector: 'app-work-order-detail',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ChecklistComponent, SignaturePadComponent, LocationHistoryComponent, MapViewComponent],
+  imports: [CommonModule, ReactiveFormsModule, ChecklistComponent, SignaturePadComponent, LocationHistoryComponent, MapViewComponent, PartUsageTrackerComponent],
   template: `
     <div class="detail-container glass-panel">
       <div class="header">
@@ -310,6 +311,14 @@ import { take } from 'rxjs';
               (signatureSaved)="onSignatureSaved($event)"
               (cancelled)="showSignaturePad = false">
             </app-signature-pad>
+          </div>
+
+          <!-- Part Usage Tracker -->
+          <div class="usage-section" *ngIf="workOrder && (workOrder.status === 'IN_PROGRESS' || workOrder.status === 'OPEN')">
+            <app-part-usage-tracker
+              [workOrderId]="workOrder.id"
+              (usageLogged)="onUsageLogged()">
+            </app-part-usage-tracker>
           </div>
 
           <button type="submit" class="submit-btn" [disabled]="editForm.invalid || !editForm.dirty">
@@ -1616,5 +1625,9 @@ export class WorkOrderDetailComponent implements OnInit {
         `;
       }
     }
+  }
+
+  onUsageLogged() {
+    this.toastService.success('Part usage logged successfully to this work order.');
   }
 }

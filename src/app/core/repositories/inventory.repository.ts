@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, map } from 'rxjs';
+import { BehaviorSubject, Observable, map, of } from 'rxjs';
 import { StorageService } from '../services/storage.service';
 import { SupabaseService } from '../services/supabase.service';
 import { Part, StockLocation, StockLevel } from '../models/inventory.model';
+import { MOCK_PARTS, MOCK_LOCATIONS, MOCK_STOCK_LEVELS } from '../data/mock-inventory.data';
 
 @Injectable({
   providedIn: 'root'
@@ -28,17 +29,24 @@ export class InventoryRepository {
   }
 
   private async loadInitialData() {
-    // Load from local storage first for instant UI
+    // First try to sync from Supabase
+    await this.syncFromSupabase();
+
+    // Then load from local storage as cache/fallback
     const cachedParts = await this.storageService.getItem<Part[]>(this.PARTS_KEY);
     const cachedLocations = await this.storageService.getItem<StockLocation[]>(this.LOCATIONS_KEY);
     const cachedStockLevels = await this.storageService.getItem<StockLevel[]>(this.STOCK_LEVELS_KEY);
 
-    if (cachedParts) this.partsSubject.next(cachedParts);
-    if (cachedLocations) this.locationsSubject.next(cachedLocations);
-    if (cachedStockLevels) this.stockLevelsSubject.next(cachedStockLevels);
-
-    // Then sync with Supabase
-    this.syncFromSupabase();
+    // Only use cached data if Supabase didn't return anything
+    if (cachedParts && cachedParts.length > 0) {
+      this.partsSubject.next(cachedParts);
+    }
+    if (cachedLocations && cachedLocations.length > 0) {
+      this.locationsSubject.next(cachedLocations);
+    }
+    if (cachedStockLevels && cachedStockLevels.length > 0) {
+      this.stockLevelsSubject.next(cachedStockLevels);
+    }
   }
 
   private async syncFromSupabase() {

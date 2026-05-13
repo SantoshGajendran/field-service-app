@@ -169,6 +169,10 @@ export class RmaService {
     }
   }
 
+  getTechnicianRmas(techId: string): Observable<RmaRequest[]> {
+    return this.rmaRequests$.pipe(map(requests => requests.filter(r => r.requestedBy === techId)));
+  }
+
   getRmaRequestById(id: string): Observable<RmaRequest | undefined> {
     return this.rmaRequests$.pipe(
       map(requests => requests.find(r => r.id === id))

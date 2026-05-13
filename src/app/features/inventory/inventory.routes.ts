@@ -43,4 +43,11 @@ export const inventoryRoutes: Routes = [
         (m) => m.RmaManagementComponent
       ),
   },
+  {
+    path: 'seed',
+    loadComponent: () =>
+      import('./containers/data-seed/data-seed.component').then(
+        (m) => m.DataSeedComponent
+      ),
+  },
 ];

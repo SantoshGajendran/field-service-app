@@ -215,10 +215,60 @@ button, a, .interactive, [role="button"], .nav-item, .action-card, .filter-btn {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Touch ripple effect */
+button::after, .filter-btn::after, .nav-item::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease-out, height 0.4s ease-out;
+}
+
+button:active::after, .filter-btn:active::after, .nav-item:active::after {
+  width: 200%;
+  height: 200%;
 }
 
 button:active, a:active, .interactive:active, [role="button"]:active {
   transform: scale(0.97);
+}
+
+/* Smooth transitions for all interactive elements */
+.btn-primary, .btn-secondary, .btn-icon, .filter-btn, .nav-item {
+  transition: all var(--transition-base);
+}
+
+.btn-primary:hover, .btn-secondary:hover, .filter-btn:hover, .nav-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary:active, .btn-secondary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Focus ring animation */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  animation: focusRing 0.3s ease-out;
+}
+
+@keyframes focusRing {
+  0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.5); }
+  100% { box-shadow: 0 0 0 4px rgba(14, 165, 233, 0); }
 }
 
 /* Enhanced button focus states */
